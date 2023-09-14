@@ -1,16 +1,15 @@
 {
   "files": {
-    "main.css": "/gpu_poor/static/css/main.a1cf361d.css",
-    "main.js": "/gpu_poor/static/js/main.7f2a5c82.js",
+    "main.css": "/gpu_poor/static/css/main.e27caab2.css",
+    "main.js": "/gpu_poor/static/js/main.129c54f5.js",
     "static/js/787.dccdf937.chunk.js": "/gpu_poor/static/js/787.dccdf937.chunk.js",
-    "static/media/logo.svg": "/gpu_poor/static/media/logo.6ce24c58023cc2f8fd88fe9d219db6c6.svg",
     "index.html": "/gpu_poor/index.html",
-    "main.a1cf361d.css.map": "/gpu_poor/static/css/main.a1cf361d.css.map",
-    "main.7f2a5c82.js.map": "/gpu_poor/static/js/main.7f2a5c82.js.map",
+    "main.e27caab2.css.map": "/gpu_poor/static/css/main.e27caab2.css.map",
+    "main.129c54f5.js.map": "/gpu_poor/static/js/main.129c54f5.js.map",
     "787.dccdf937.chunk.js.map": "/gpu_poor/static/js/787.dccdf937.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.a1cf361d.css",
-    "static/js/main.7f2a5c82.js"
+    "static/css/main.e27caab2.css",
+    "static/js/main.129c54f5.js"
   ]
 }
