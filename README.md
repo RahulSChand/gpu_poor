@@ -37,7 +37,7 @@ The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It 
 ```
 
 #### Why are the results wrong?
-The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. Sometimes the answers might be very wrong in which case please open an issue here: https://github.com/RahulSChand/gpu_poor
+The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. Sometimes the answers might be very wrong in which case please open an issue
 
 
 
