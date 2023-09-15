@@ -1,5 +1,5 @@
 # Are you GPU poor?
-Calculate GPU memory requirement for training/inference of LLM models: https://rahulschand.github.io/gpu_poor/
+Calculate GPU memory requirement and breakdown for training/inference of any LLM model: https://rahulschand.github.io/gpu_poor/
 
 
 ### Purpose
