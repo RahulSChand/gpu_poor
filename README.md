@@ -1,7 +1,6 @@
 # Are you GPU poor?
 Calculate GPU memory requirement for training/inference of LLM models: https://rahulschand.github.io/gpu_poor/
 
-Check LLM memory requirements: http://rahulschand.github.io/gpu_poor/
 
 ### Purpose
 I made this after a few days of frustation of not being able to finetune a 7b-hf with bnb int8 quanization & sequence length=1000 on a 24GB 4090. This might be useful to people starting out or trying to figure out which LLMs they can train/run on their own GPUs. There are infernece frameworks like GGML which allow you to run LLMs on your CPU (or CPU+GPU) so this is not useful to people that are trying to find the cheapest way to run a particular LLM (which is CPU with ggml).
