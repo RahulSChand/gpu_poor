@@ -1,70 +1,41 @@
-# Getting Started with Create React App
+# Are you GPU poor?
+Calculate GPU memory requirement &amp; breakdown for training/inference of LLM models (with quantization & inference frameworks): http://rahulschand.github.io/gpu_poor/
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
 
-In the project directory, you can run:
+### Purpose
+I made this after a few days of frustation of not being able to finetune a 7b-hf with bnb int8 quanization & sequence length=1000 on a 24GB 4090. This might be useful to people starting out or trying to figure out which LLMs they can train/run on their own GPUs. There are infernece frameworks like GGML which allow you to run LLMs on your CPU (or CPU+GPU) so this is not useful to people that are trying to find the cheapest way to run a particular LLM (which is CPU with ggml).
 
-### `npm start`
+### How to use
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+#### Model Name/ID/Size
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. You can either upload the model id of a huggingface model (e.g. meta-llama/Llama-2-7b). Currently I have hardcoded & saved configs of top 3k most downlaoded LLMs on huggingface. 
+2. If you have a custom model or your hugginface id isn't available then you can either upload a json config ([example]( https://huggingface.co/codellama/CodeLlama-7b-hf/blob/main/config.json)) or just enter your model size (e.g. 7 billion for llama-2-7b)
 
-### `npm test`
+#### Options
+1. **Inference**: Find vRAM for inference using either HuggingFace implementation or vLLM or GGML
+2. **Training** : Find vRAM for either full model finetuning or finetuning using LoRA (currently I have hardcoded r=8 for LoRA config) 
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+#### Quantization
+1. Currently it supports: bitsandbytes (bnb) int8/int4 & GGML (QK_8, QK_5, QK_4). The latter are only for inference while bnb int8/int4 can be used for both training & inference
 
-### `npm run build`
+#### Context Len/Sequence Length
+1. What is the length of your prompt+new maximum tokens generated. Or for training this is the sequence length of your training data. Batch sizes are 1. The option to specify batch sizes needs to be added.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+#### Output
+The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It looks like below
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```     
+{
+  Total: 4000,
+  "KV Cache": 1000,
+  "Model Size": 2500,
+  "Activation Memory": 0,
+  "Grad & Optimizer memory": 0,
+  "cuda + other overhead":  500
+}
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+#### Why are the results wrong?
+The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. Sometimes the answers might be very wrong in which case please open an issue here: https://github.com/RahulSChand/gpu_poor
