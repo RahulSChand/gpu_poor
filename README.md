@@ -1,5 +1,6 @@
-# Are you GPU poor?
-Calculate GPU memory requirement &amp; breakdown for training/inference of LLM models (with quantization & inference frameworks): http://rahulschand.github.io/gpu_poor/
+# Can your GPU run this?
+
+Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bnb) & inference frameworks (vLLM/llama.cpp/HF): http://rahulschand.github.io/gpu_poor/
 
 
 <img width="1157" alt="Screenshot 2023-09-16 at 2 59 34 AM" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/30105eb7-50cf-4bc2-8f73-8e7aedbb48bd">
