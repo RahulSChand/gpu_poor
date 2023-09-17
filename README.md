@@ -51,11 +51,11 @@ Finding which LLMs your GPU can handle isn't as easy as looking at the model siz
 
 
 
-#### How reliable are the numbers?
+### How reliable are the numbers?
 The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. I have cross checked 3b,7b & 13b models against what the website gives & what I get on my RTX 4090 & 2060. Below is the table, all numbers are within 500MB.
 
 <img width="604" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/3d49a422-f174-4537-b5fa-42adc4b15a89">
 
 
-#### Why are the results wrong?
+### Why are the results wrong?
 Sometimes the answers might be very wrong in which case please open an issue here & I will try to fix it.
