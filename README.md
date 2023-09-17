@@ -22,10 +22,10 @@ I made this after a few days of frustation of not being able to finetune a 7b-hf
 2. **Training** : Find vRAM for either full model finetuning or finetuning using LoRA (currently I have hardcoded r=8 for LoRA config) 
 
 #### Quantization
-1. Currently it supports: bitsandbytes (bnb) int8/int4 & GGML (QK_8, QK_5, QK_4). The latter are only for inference while bnb int8/int4 can be used for both training & inference
+1. Currently it supports: bitsandbytes (bnb) int8/int4 & GGML (QK_8, QK_6, QK_5, QK_4, QK_2). The latter are only for inference while bnb int8/int4 can be used for both training & inference
 
 #### Context Len/Sequence Length
-1. What is the length of your prompt+new maximum tokens generated. Or for training this is the sequence length of your training data. Batch sizes are 1. The option to specify batch sizes needs to be added.
+1. What is the length of your prompt+new maximum tokens generated. Or for training this is the sequence length of your training data. Batch sizes are 1 for inference & can be specified for training. The option to specify batch sizes for inference needs to be added.
 
 #### Output
 The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It looks like below
@@ -41,5 +41,11 @@ The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It 
 }
 ```
 
+#### How reliable are the numbers?
+The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. I have cross checked 3b,7b & 13b models against what the website gives & what I get on my RTX 4090 & 2060. Below is the excel, all numbers are within 500MB.
+
+<img width="604" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/3d49a422-f174-4537-b5fa-42adc4b15a89">
+
+
 #### Why are the results wrong?
-The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. Sometimes the answers might be very wrong in which case please open an issue here: https://github.com/RahulSChand/gpu_poor
+Sometimes the answers might be very wrong in which case please open an issue here & I will try to fix it.
