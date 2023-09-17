@@ -5,7 +5,8 @@
 Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bnb) & inference frameworks (vLLM/llama.cpp/HF). Link: **http://rahulschand.github.io/gpu_poor/**
 
 
-![ezgif-3-1180401295](https://github.com/RahulSChand/gpu_poor/assets/16897807/c4be2571-599e-4e91-9901-257d1d854b0d)
+
+![smaller_gif-2](https://github.com/RahulSChand/gpu_poor/assets/16897807/980047e9-cf89-4764-8576-aaf842ea83d1)
 
 
 
