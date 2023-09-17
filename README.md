@@ -8,13 +8,13 @@ Calculate how much GPU memory you need &amp; breakdown of where it goes for trai
 
 
 ### Purpose
-I made this after a few days of frustation of not being able to finetune a 7b-hf with bnb int8 quanization & sequence length=1000 on a 24GB 4090. This might be useful to people starting out or trying to figure out which LLMs they can train/run on their own GPUs. There are infernece frameworks like GGML which allow you to run LLMs on your CPU (or CPU+GPU) so this is not useful to people that are trying to find the cheapest way to run a particular LLM (which is CPU with ggml).
+I made this after a few days of frustation of not being able to finetune a 7b-hf with bnb int8 quanization & sequence length=1000 on a 24GB 4090. This might be useful to people starting out or trying to figure out which LLMs they can train/run on their own GPUs. There are infernece frameworks like GGML which allow you to run LLMs on your CPU (or CPU+GPU) so this is not useful to people that are trying to find the cheapest way to run a particular LLM (which is 0 vRAM & use only CPU with ggml).
 
 ### How to use
 
 #### Model Name/ID/Size
 
-1. You can either upload the model id of a huggingface model (e.g. meta-llama/Llama-2-7b). Currently I have hardcoded & saved configs of top 3k most downlaoded LLMs on huggingface. 
+1. You can either enter the model id of a huggingface model (e.g. meta-llama/Llama-2-7b). Currently I have hardcoded & saved model configs of top 3k most downlaoded LLMs on huggingface.
 2. If you have a custom model or your hugginface id isn't available then you can either upload a json config ([example]( https://huggingface.co/codellama/CodeLlama-7b-hf/blob/main/config.json)) or just enter your model size (e.g. 7 billion for llama-2-7b)
 
 #### Options
@@ -42,7 +42,7 @@ The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It 
 ```
 
 #### How reliable are the numbers?
-The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. I have cross checked 3b,7b & 13b models against what the website gives & what I get on my RTX 4090 & 2060. Below is the excel, all numbers are within 500MB.
+The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. I have cross checked 3b,7b & 13b models against what the website gives & what I get on my RTX 4090 & 2060. Below is the table, all numbers are within 500MB.
 
 <img width="604" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/3d49a422-f174-4537-b5fa-42adc4b15a89">
 
