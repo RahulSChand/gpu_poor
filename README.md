@@ -1,4 +1,4 @@
-# Can your GPU run this?
+# Can your GPU run this LLM?
 
 Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bnb) & inference frameworks (vLLM/llama.cpp/HF): http://rahulschand.github.io/gpu_poor/
 
@@ -8,8 +8,28 @@ Calculate how much GPU memory you need &amp; breakdown of where it goes for trai
 
 
 ### Purpose
-I made this after a few days of frustation of not being able to finetune a 7b-hf with bnb int8 quanization & sequence length=1000 on a 24GB 4090. This might be useful to people starting out or trying to figure out which LLMs they can train/run on their own GPUs. There are infernece frameworks like GGML which allow you to run LLMs on your CPU (or CPU+GPU) so this is not useful to people that are trying to find the cheapest way to run a particular LLM (which is 0 vRAM & use only CPU with ggml).
 
+I made this to check if you can run a particular LLM on your GPU. Useful to figure out the following
+1. What quantization I should use
+2. What max context length my GPU can handle
+3. What batch size I can use during finetuning
+4. What is consuming my GPU memory? What should I change to fit the LLM on my GPU
+
+The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It looks like below
+
+```     
+{
+  Total: 4000,
+  "KV Cache": 1000,
+  "Model Size": 2500,
+  "Activation Memory": 0,
+  "Grad & Optimizer memory": 0,
+  "cuda + other overhead":  500
+}
+```
+
+Finding which LLMs your GPU can handle isn't as easy as looking at the model size because during inference (KV cache) takes susbtantial amount of memory. For example, with sequence length 1000 on llama-2-7b it takes 2GB of extra memory (using hugginface LlamaForCausalLM). And during training both KV cache & activations take a lot of memory. For example, even with LoRA lot of memory goes into both KV cache & activations. For example, llama-7b with bnb int8 quant is of size 8GB but it isn't possible to finetune it using LoRA on data with 1000 context length even with RTX 4090 24 GB. 
+ 
 ### How to use
 
 #### Model Name/ID/Size
@@ -27,19 +47,8 @@ I made this after a few days of frustation of not being able to finetune a 7b-hf
 #### Context Len/Sequence Length
 1. What is the length of your prompt+new maximum tokens generated. Or for training this is the sequence length of your training data. Batch sizes are 1 for inference & can be specified for training. The option to specify batch sizes for inference needs to be added.
 
-#### Output
-The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It looks like below
 
-```     
-{
-  Total: 4000,
-  "KV Cache": 1000,
-  "Model Size": 2500,
-  "Activation Memory": 0,
-  "Grad & Optimizer memory": 0,
-  "cuda + other overhead":  500
-}
-```
+
 
 #### How reliable are the numbers?
 The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. I have cross checked 3b,7b & 13b models against what the website gives & what I get on my RTX 4090 & 2060. Below is the table, all numbers are within 500MB.
