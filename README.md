@@ -1,4 +1,4 @@
-# Can your GPU run this LLM?
+# Can my GPU run this LLM?
 
 Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bnb) & inference frameworks (vLLM/llama.cpp/HF): http://rahulschand.github.io/gpu_poor/
 
@@ -12,7 +12,7 @@ Calculate how much GPU memory you need &amp; breakdown of where it goes for trai
 I made this to check if you can run a particular LLM on your GPU. Useful to figure out the following
 1. What quantization I should use
 2. What max context length my GPU can handle
-3. What batch size I can use during finetuning
+3. What max batch size I can use during finetuning
 4. What is consuming my GPU memory? What should I change to fit the LLM on my GPU
 
 The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It looks like below
@@ -21,14 +21,15 @@ The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It 
 {
   Total: 4000,
   "KV Cache": 1000,
-  "Model Size": 2500,
-  "Activation Memory": 0,
+  "Model Size": 2000,
+  "Activation Memory": 500,
   "Grad & Optimizer memory": 0,
   "cuda + other overhead":  500
 }
 ```
+### Can't we just look at the model size & figure this out?
 
-Finding which LLMs your GPU can handle isn't as easy as looking at the model size because during inference (KV cache) takes susbtantial amount of memory. For example, with sequence length 1000 on llama-2-7b it takes 2GB of extra memory (using hugginface LlamaForCausalLM). And during training both KV cache & activations take a lot of memory. For example, even with LoRA lot of memory goes into both KV cache & activations. For example, llama-7b with bnb int8 quant is of size 8GB but it isn't possible to finetune it using LoRA on data with 1000 context length even with RTX 4090 24 GB. 
+Finding which LLMs your GPU can handle isn't as easy as looking at the model size because during inference (KV cache) takes susbtantial amount of memory. For example, with sequence length 1000 on llama-2-7b it takes 2GB of extra memory (using hugginface LlamaForCausalLM, with exLlama & vLLM this is 1GB). And during training both KV cache & activations & quantization overhead take a lot of memory. For example, llama-7b with bnb int8 quant is of size 8GB but it isn't possible to finetune it using LoRA on data with 1000 context length even with RTX 4090 24 GB.
  
 ### How to use
 
