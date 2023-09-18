@@ -34,7 +34,7 @@ The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It 
 ```
 ### Can't we just look at the model size & figure this out?
 
-Finding which LLMs your GPU can handle isn't as easy as looking at the model size because during inference (KV cache) takes susbtantial amount of memory. For example, with sequence length 1000 on llama-2-7b it takes 2GB of extra memory (using hugginface LlamaForCausalLM, with exLlama & vLLM this is 1GB). And during training both KV cache & activations & quantization overhead take a lot of memory. For example, llama-7b with bnb int8 quant is of size 8GB but it isn't possible to finetune it using LoRA on data with 1000 context length even with RTX 4090 24 GB.
+Finding which LLMs your GPU can handle isn't as easy as looking at the model size because during inference (KV cache) takes susbtantial amount of memory. For example, with sequence length 1000 on llama-2-7b it takes 1GB of extra memory (using hugginface LlamaForCausalLM, with exLlama & vLLM this is 500MB). And during training both KV cache & activations & quantization overhead take a lot of memory. For example, llama-7b with bnb int8 quant is of size ~7.5GB but it isn't possible to finetune it using LoRA on data with 1000 context length even with RTX 4090 24 GB. Which means an additional 16GB memory goes into quant overheads, activations & grad memory.
  
 ### How to use
 
@@ -64,3 +64,8 @@ The results can vary depending on your model, input data, cuda version & what qu
 
 ### Why are the results wrong?
 Sometimes the answers might be very wrong in which case please open an issue here & I will try to fix it.
+
+### TODO
+1. Add support for exLlama
+2. Add QLora
+3. Add way to measure approximste tokens/s you can get for a particular GPU
