@@ -24,7 +24,7 @@ The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It 
 
 ```     
 {
-  Total: 4000,
+  "Total": 4000,
   "KV Cache": 1000,
   "Model Size": 2000,
   "Activation Memory": 500,
