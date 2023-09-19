@@ -67,5 +67,5 @@ Sometimes the answers might be very wrong in which case please open an issue her
 
 ### TODO
 1. Add support for exLlama
-2. Add QLora
+2. ~Add QLora~ ✅
 3. Add way to measure approximste tokens/s you can get for a particular GPU
