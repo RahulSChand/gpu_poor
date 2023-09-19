@@ -1313,7 +1313,7 @@ function App() {
                 <div>
                     <a
                         className="text-base underline text-blue-600 hover:font-bold"
-                        href="https://gist.github.com/RahulSChand/4bc83d1529afc99be14d2a2a54b8e968"
+                        href="https://github.com/RahulSChand/gpu_poor/"
                         target="_blank"
                         rel="noopener noreferrer"
                     >
