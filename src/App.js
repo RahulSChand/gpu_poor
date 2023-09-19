@@ -11,14 +11,32 @@ if (
     configPath = "/gpu_poor/all_configs.json";
 }
 const MAX_FILE_SIZE = 500000;
+const ggml_quants = [
+    "ggml_QK4_0",
+    "ggml_QK4_1",
+    "ggml_QK5_0",
+    "ggml_QK5_1",
+    "ggml_QK8_0",
+    "ggml_QK8_1",
 
+    "ggml_Q2_K",
+
+    "ggml_Q3_K_L",
+    "ggml_Q3_K_M",
+
+    "ggml_QK4_K_M",
+    "ggml_QK4_K_S",
+
+    "ggml_QK5_K_M",
+    "ggml_Q6_K",
+];
 // console.log(configPath);
 
 /*
 dropdownTrnOrNot: 'inf', 'trn', 'inf_vLLM','inf_exL','inf_ggml'
-dropdownFullOrNot: 'no_trn', 'lora_trn, 'full_trn'
+dropdownFullOrNot: 'lora_trn, 'full_trn', 'qlora'
 dropdownOpt: 'no_opt', 'sgd_opt','adam_opt'
-dropdownQuant: 'no_quant','bnb_int8','bnb_q4'
+dropdownQuant: 'no_quant','bnb_int8','bnb_q4', 
 */
 const specialNamesMapping = {
     "meta-llama/Llama-2-7b": "meta-llama/Llama-2-7b-hf",
@@ -164,6 +182,7 @@ function getGradOptMemory(
     modelSize,
     floatBytes,
     parsedConfig,
+    contextLen,
     batchSize = 1
 ) {
     const full = dropdownFullOrNot,
@@ -171,13 +190,33 @@ function getGradOptMemory(
         quant = dropdownQuant;
     console.log(full, opt, quant);
 
+    //QLora start
+    // console.log("full: ", full);
+    if (full === "qlora" && opt === "adam_opt") {
+        //Need to check if q4 also takes extra memory
+        console.log("calculating qlora");
+        return (
+            parsedConfig.num_layers * 8 * parsedConfig.hiddenDim * 0.5 * 4 * 3 +
+            getExtraMemory(parsedConfig, "qlora", contextLen) * batchSize
+        );
+    }
+    if (full === "qlora" && opt === "sgd_opt") {
+        //Need to check if q4 also takes extra memory
+        return (
+            parsedConfig.num_layers * 8 * parsedConfig.hiddenDim * 0.5 * 4 * 1 +
+            getExtraMemory(parsedConfig, "qlora", contextLen) * batchSize
+        );
+    }
+    //QLora end
+
     if (full === "full_trn" && opt === "adam_opt" && quant === "no_quant") {
         return modelSize * 3 * floatBytes;
     }
 
     if (full === "full_trn" && opt === "adam_opt" && quant === "bnb_int8") {
         return (
-            modelSize * 3 * 1 + getExtraMemory(parsedConfig, quant) * batchSize
+            modelSize * 3 * 1 +
+            getExtraMemory(parsedConfig, quant, contextLen) * batchSize
         ); //Some extra mmeory that bnb int8 takes
     }
 
@@ -185,9 +224,11 @@ function getGradOptMemory(
         //Need to check if q4 also takes extra memory
         return (
             modelSize * 3 * 0.5 +
-            getExtraMemory(parsedConfig, quant) * batchSize
+            getExtraMemory(parsedConfig, quant, contextLen) * batchSize
         );
     }
+
+    
     //------------
     if (full === "full_trn" && opt === "sgd_opt" && quant === "no_quant") {
         return modelSize * 1 * floatBytes;
@@ -195,16 +236,18 @@ function getGradOptMemory(
 
     if (full === "full_trn" && opt === "sgd_opt" && quant === "bnb_int8") {
         return (
-            modelSize * 1 * 1 + getExtraMemory(parsedConfig, quant) * batchSize
+            modelSize * 1 * 1 +
+            getExtraMemory(parsedConfig, quant, contextLen) * batchSize
         );
     }
 
     if (full === "full_trn" && opt === "sgd_opt" && quant === "bnb_q4") {
         return (
             modelSize * 1 * 0.5 +
-            getExtraMemory(parsedConfig, quant) * batchSize
+            getExtraMemory(parsedConfig, quant, contextLen) * batchSize
         );
     }
+
 
     //4*layer*8*hid*4*2
 
@@ -219,16 +262,17 @@ function getGradOptMemory(
         console.log("here!");
         return (
             parsedConfig.num_layers * 8 * parsedConfig.hiddenDim * 2 * 4 * 3 +
-            getExtraMemory(parsedConfig, quant) * batchSize
+            getExtraMemory(parsedConfig, quant, contextLen) * batchSize
         );
     }
 
     if (full === "lora_trn" && opt === "adam_opt" && quant === "bnb_q4") {
         return (
             parsedConfig.num_layers * 8 * parsedConfig.hiddenDim * 2 * 4 * 3 +
-            getExtraMemory(parsedConfig, quant) * batchSize
+            getExtraMemory(parsedConfig, quant, contextLen) * batchSize
         );
     }
+
     //------------
     if (full === "lora_trn" && opt === "sgd_opt" && quant === "no_quant") {
         return parsedConfig.num_layers * 8 * parsedConfig.hiddenDim * 2 * 4 * 2;
@@ -237,14 +281,14 @@ function getGradOptMemory(
     if (full === "lora_trn" && opt === "sgd_opt" && quant === "bnb_int8") {
         return (
             parsedConfig.num_layers * 8 * parsedConfig.hiddenDim * 2 * 4 * 1 +
-            getExtraMemory(parsedConfig, quant) * batchSize
+            getExtraMemory(parsedConfig, quant, contextLen) * batchSize
         );
     }
 
     if (full === "lora_trn" && opt === "sgd_opt" && quant === "bnb_q4") {
         return (
             parsedConfig.num_layers * 8 * parsedConfig.hiddenDim * 2 * 4 * 1 +
-            getExtraMemory(parsedConfig, quant) * batchSize
+            getExtraMemory(parsedConfig, quant, contextLen) * batchSize
         );
     }
 
@@ -252,7 +296,39 @@ function getGradOptMemory(
     throw new Error("Invalid combination of values");
 }
 
-function getExtraMemory(parsedConfig, quant) {
+function getExtraMemory(parsedConfig, quant, contextLen) {
+    const constant_8_extra = 0.75;
+    const constant_4_extra = 1.5;
+    const constant_qlora = 0.75;
+
+    const common =
+        (10 * parsedConfig.hiddenDim +
+            5 * parsedConfig.hiddenDim +
+            4 * parsedConfig.interDim +
+            2 * parsedConfig.interDim) *
+        parsedConfig.num_layers;
+
+    let extra_mem = 0;
+
+    if (quant === "bnb_int8") {
+        extra_mem = constant_8_extra * common * contextLen;
+    }
+
+    if (quant === "bnb_q4") {
+        extra_mem = constant_4_extra * common * contextLen;
+        
+    }
+
+    if (quant === "qlora") {
+        extra_mem = constant_qlora * common * contextLen;
+        
+    }
+
+    console.log("extra mem", extra_mem);
+    return extra_mem;
+}
+
+function getExtraMemoryOld(parsedConfig, quant) {
     const constant_8_overhead = 200.0,
         constant_8_extra = 350.0;
     const constant_4_overhead = 350.0,
@@ -344,31 +420,37 @@ function getActivationMemory(
     return total;
 }
 
+function checkCombinationTrainInference(
+    quantType,
+    setErrorMessage,
+    openModal,
+    typeOfTrn
+    ){
+
+    //! Can't train full with QLoRA
+    if ((typeOfTrn==='full_trn') && ggml_quants.includes(quantType)){
+        setErrorMessage("Can't use GGML for training");
+        openModal();
+        return false;
+    }
+    if (typeOfTrn==="qlora" && quantType!='no_quant'){
+        setErrorMessage("QLoRA is 4bit explicit. No need to select a quant type if you are training using QLoRA. Set it to 'None'");
+        openModal();
+        return false;
+    }
+    return true;
+    
+
+
+}
+
 function checkCombinationInference(
     trnType,
     quantType,
     setErrorMessage,
     openModal
 ) {
-    const ggml_quants = [
-        "ggml_QK4_0",
-        "ggml_QK4_1",
-        "ggml_QK5_0",
-        "ggml_QK5_1",
-        "ggml_QK8_0",
-        "ggml_QK8_1",
-
-        "ggml_Q2_K",
-        
-        "ggml_Q3_K_L",
-        "ggml_Q3_K_M",
-
-        "ggml_QK4_K_M",
-        "ggml_QK4_K_S",
-
-        "ggml_QK5_K_M",
-        "ggml_Q6_K",
-    ];
+    
 
     if (ggml_quants.includes(quantType)) {
         if (trnType != "inf_ggml") {
@@ -386,17 +468,17 @@ function checkCombinationInference(
     }
     if (
         trnType === "inf_ggml" &&
-        (quantType === "bnb_int8" || quantType === "bnb_q4")
+        (quantType === "bnb_int8" ||
+            quantType === "bnb_q4")
     ) {
         setErrorMessage("ggml doesn't support bnb");
         openModal();
         return false;
     }
-    if (
-        trnType === "inf_ggml" &&
-        (quantType === "no_quant")
-    ) {
-        setErrorMessage("If you want no quant then pick vLLM/HF inference framework");
+    if (trnType === "inf_ggml" && quantType === "no_quant") {
+        setErrorMessage(
+            "If you want no quant then pick vLLM/HF inference framework"
+        );
         openModal();
         return false;
     }
@@ -490,7 +572,7 @@ function getParseConfig(parsedJSONData, setErrorMessage, openModal) {
     const hiddenDim = getKey(
         ["hidden_size", "d_model", "n_embd"],
         parsedJSONData,
-        64
+        768
     );
     const heads = getKey(
         ["num_attention_heads", "num_heads", "n_head"],
@@ -500,7 +582,7 @@ function getParseConfig(parsedJSONData, setErrorMessage, openModal) {
     const interDim = getKey(
         ["intermediate_size", "n_inner", "d_ff"],
         parsedJSONData,
-        12
+        hiddenDim * 4
     );
     const num_layers = getKey(
         ["num_layers", "num_hidden_layers", "n_layer"],
@@ -545,11 +627,11 @@ function convertToMB(value) {
     return value / (1024 * 1024);
 }
 
-function convertToMBModelSize(value, quant) {
+function convertToMBModelSize(value, quant, typeOfTrn) {
     let extra = 0;
     let fB = 2;
     let size = (value * fB) / (1024 * 1024);
-    if (quant === "bnb_int8" || quant === "bnb_q4") {
+    if (quant === "bnb_int8" || quant === "bnb_q4" || typeOfTrn === "qlora") {
         extra = 0.06 * size;
     }
 
@@ -559,6 +641,11 @@ function convertToMBModelSize(value, quant) {
     if (quant === "bnb_q4") {
         size = size / 4;
     }
+
+    if (typeOfTrn === "qlora") {
+        size = size / 4 - (value * 2) / (64 * 1024 * 1024);
+    }
+
     return size + extra;
 }
 
@@ -586,6 +673,9 @@ function getAllComputedData(
     const floatBytes = convertToBytes(floatType);
     const quantType = selections.dropdownQuant;
     const trnType = selections.dropdownTrnOrNot;
+    const typeOfTrn = selections.dropdownFullOrNot;
+
+    //trnType should be trnOrNot
 
     if (batchSize === "") {
         batchSize = "1";
@@ -650,15 +740,15 @@ function getAllComputedData(
     if (quantType === "bnb_int8") {
         fB = 1;
     }
-    if (quantType === "bnb_q4") {
+    if (quantType === "bnb_q4" || typeOfTrn === "qlora") {
         fB = 0.5;
     }
-    let modelSizeinMB = convertToMBModelSize(modelSizeinB, quantType);
+    let modelSizeinMB = convertToMBModelSize(modelSizeinB, quantType, typeOfTrn);
     // console.log(modelSizeinB);
 
     //!Inference
     if (trnType != "trn") {
-        const checkSanity = checkCombinationInference(
+        let checkSanity = checkCombinationInference(
             trnType,
             quantType,
             setErrorMessage,
@@ -674,7 +764,7 @@ function getAllComputedData(
             if (quantType === "bnb_int8") {
                 fB = 1;
             }
-            if (quantType === "bnb_q4") {
+            if (quantType === "bnb_q4" || typeOfTrn === "qlora") {
                 fB = 0.5;
             }
 
@@ -720,13 +810,20 @@ function getAllComputedData(
         totalMemory =
             inferenceMemory + modelSizeinMB + overHead + activationMemory;
     } else {
+
+        // console.log("training!");
+
+        let checkSanity = checkCombinationTrainInference(quantType, setErrorMessage, openModal, typeOfTrn);
+        if (!checkSanity) {
+            return null;
+        }
         //! Train
         activationMemory = getActivationMemory(
             parsedConfig,
             contextLen,
             floatBytes,
             quantType,
-            selections.dropdownFullOrNot,
+            typeOfTrn,
             batchSize
         );
 
@@ -734,15 +831,17 @@ function getAllComputedData(
         console.log("got activation", activationMemory);
 
         gradAndOptMemory = getGradOptMemory(
-            selections.dropdownFullOrNot,
+            typeOfTrn,
             selections.dropdownOpt,
             quantType,
             modelSizeinB,
             floatBytes,
-            parsedConfig
+            parsedConfig,
+            contextLen,
+            batchSize
         );
 
-        console.log("got gradOpt", gradAndOptMemory);
+        // console.log("got gradOpt", gradAndOptMemory);
 
         gradAndOptMemory = convertToMB(gradAndOptMemory);
         totalMemory = modelSizeinMB + gradAndOptMemory + activationMemory;
@@ -885,6 +984,13 @@ function App() {
     }
 
     async function handleClick() {
+        if (modelName.includes("GGML") || modelName.includes("GGUF")) {
+            setErrorMessage(
+                "If you want info about GGML/GGUF models then enter the normal name & select GGML inference & quant type below. For example, if you want info about llama-2-7b.Q3_K_L.gguf then enter meta-llama/Llama-2-7b in the model name"
+            );
+            openModal();
+            return;
+        }
         let parsedConfig = await fetchParams(specialMapping(modelName));
         const out = getAllComputedData(
             parsedConfig,
@@ -927,7 +1033,6 @@ function App() {
     // };
 
     return (
-        
         <div className="App">
             <header className="App-header">
                 <div className="App">
@@ -1043,7 +1148,7 @@ function App() {
                             <option value="inf_vLLM">Inference (vLLM)</option>
                             <option value="inf_exL">Inference (exLlama)</option>
                             <option value="inf_ggml">Inference (GGML)</option>
-                            <option value="trn">Training</option>
+                            <option value="trn">Training (Huggingface)</option>
                         </select>
                     </div>
 
@@ -1059,6 +1164,7 @@ function App() {
                             >
                                 <option value="full_trn">Full</option>
                                 <option value="lora_trn">LoRA</option>
+                                <option value="qlora">QLoRA</option>
                             </select>
                         </div>
                         <div className="pr-6">
@@ -1084,8 +1190,10 @@ function App() {
                                 onChange={handleChangeSelection}
                             >
                                 <option value="no_quant">None</option>
+                                <optgroup label="-----"></optgroup>
                                 <option value="bnb_int8">bnb int8</option>
                                 <option value="bnb_q4">bnb int4</option>
+                                
                                 <optgroup label="-----"></optgroup>
                                 <option value="ggml_Q2_K">GGML Q2_K</option>
 
