@@ -15,10 +15,11 @@ Calculate how much GPU memory you need &amp; breakdown of where it goes for trai
 ### Purpose
 
 I made this to check if you can run a particular LLM on your GPU. Useful to figure out the following
-1. What quantization I should use
-2. What max context length my GPU can handle
-3. What max batch size I can use during finetuning
-4. What is consuming my GPU memory? What should I change to fit the LLM on my GPU
+1. What quantization I should use to fit any model on my GPU?
+2. What max context length my GPU can handle?
+3. What kind of finetuning can I do? Full? LoRA? QLoRA?
+4. What max batch size I can use during finetuning?
+5. What is consuming my GPU memory? What should I change to fit the LLM on my GPU?
 
 The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It looks like below
 
