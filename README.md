@@ -2,7 +2,7 @@
 
 ![Made with](https://img.shields.io/badge/logo-javascript-blue?logo=javascript)
 
-Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bnb) & inference frameworks (vLLM/llama.cpp/HF). Link: **http://rahulschand.github.io/gpu_poor/**
+Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bitsandbytes), inference frameworks (vLLM/llama.cpp/HF) & QLoRA. Link: **http://rahulschand.github.io/gpu_poor/**
 
 
 
@@ -45,7 +45,7 @@ Finding which LLMs your GPU can handle isn't as easy as looking at the model siz
 
 #### Options
 1. **Inference**: Find vRAM for inference using either HuggingFace implementation or vLLM or GGML
-2. **Training** : Find vRAM for either full model finetuning or finetuning using LoRA (currently I have hardcoded r=8 for LoRA config) 
+2. **Training** : Find vRAM for either full model finetuning or finetuning using LoRA (currently I have hardcoded r=8 for LoRA config) or using QLoRA.
 
 #### Quantization
 1. Currently it supports: bitsandbytes (bnb) int8/int4 & GGML (QK_8, QK_6, QK_5, QK_4, QK_2). The latter are only for inference while bnb int8/int4 can be used for both training & inference
