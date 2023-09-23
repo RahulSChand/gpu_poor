@@ -2,7 +2,10 @@
 
 ![Made with](https://img.shields.io/badge/logo-javascript-blue?logo=javascript)
 
-Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bitsandbytes), inference frameworks (vLLM/llama.cpp/HF) & QLoRA. Link: **http://rahulschand.github.io/gpu_poor/**
+Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bitsandbytes), inference frameworks (vLLM/llama.cpp/HF) & QLoRA. 
+
+Link: **https://rahulschand.github.io/gpu_poor/**
+
 
 
 
