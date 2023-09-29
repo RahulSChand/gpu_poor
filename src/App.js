@@ -374,6 +374,8 @@ function getActivationMemory(
     // if (quant==='bnb_int8'){fB=1;}
     // if (quant==='bnb_q4'){fB=0.5;}
 
+    console.log("fb", fB);
+
     console.log("activation: ", heads, numLayers, hiddenDim, interDim);
 
     //const attn_per_layer = qkv + qk (transpose) + attn mat + attn mat convert tp fp32 + attn  mat divided by sqrt +
@@ -601,14 +603,53 @@ function getParseConfig(parsedJSONData, setErrorMessage, openModal) {
 
 function getDefault(modelSize) {
     //If only model size is provided. Guess the values
+    let vocab = null;
+    let heads = null;
+    let numLayers = null;
 
-    let vocab = 32000;
-    let heads = 32;
-    let numLayers = 32;
+    function getApprox(modelSize){
+        let vocabR=null, headsR=null, numLayersR = null
+        if (modelSize<5){
+            vocabR = 32000;
+            headsR = 32;
+            numLayersR = 24;
+            return [vocabR, headsR, numLayersR]        
+        }
+        if (modelSize<10){
+            vocabR = 32000;
+            headsR = 32;
+            numLayersR = 32;
+            return [vocabR, headsR, numLayersR]        
+        }
+        if (modelSize<24){
+            vocabR = 32000;
+            headsR = 40;
+            numLayersR = 40;
+            return [vocabR, headsR, numLayersR]        
+        }
+
+        if (modelSize<55){
+            vocabR = 32000;
+            headsR = 64;
+            numLayersR = 48;
+            return [vocabR, headsR, numLayersR]        
+        }
+
+        
+        vocabR = 32000;
+        headsR = 64;
+        numLayersR = 80;
+        return [vocabR, headsR, numLayersR];      
+        }
+
+    
+
+    [vocab,heads,numLayers] = getApprox(modelSize);
+    
 
     //vocab*h + numLayers*4*h*h + 3*4*h*h*numLayers = modelSize*10^9
     const A = numLayers * 4 + 3 * 4 * numLayers;
-    const B = vocab;
+    const B = 2*vocab;
     const C = -1 * modelSize * billion;
 
     let h = (-B + Math.sqrt(B * B - 4 * A * C)) / (2 * A);
