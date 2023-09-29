@@ -74,3 +74,4 @@ Sometimes the answers might be very wrong in which case please open an issue her
 2. ~Add QLora~ ✅
 3. Add way to measure approximste tokens/s you can get for a particular GPU
 4. ~Improve logic to get hyper-params from size~ (since hidden layer/intermediate size/number of layers can vary for a particular size) ✅
+5. Add AWQ
