@@ -61,13 +61,24 @@ Finding which LLMs your GPU can handle isn't as easy as looking at the model siz
 
 
 ### How reliable are the numbers?
-The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results arr withing 500MB. I have cross checked 3b,7b & 13b models against what the website gives & what I get on my RTX 4090 & 2060. Below is the table, all numbers are within 500MB.
+The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results are within 500MB. Below table I cross-check 3b,7b & 13b model memories given by the website vs. what what I get on my RTX 4090 & 2060 GPUs. All values are within 500MB. 
 
 <img width="604" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/3d49a422-f174-4537-b5fa-42adc4b15a89">
 
 
+### How are the values calculated? 
+
+`Total memory = model size + kv-cache + activation memory + optimizer/grad memory + cuda etc. overhead`
+1. Model size = this is your `.bin` file size (divide it by 2 if Q8 quant & by 4 if Q4 quant).
+2. KV-Cache = Memory taken by KV (key-value) vectors. Size =  `(2 x sequence length x hidden size)` **per layer**. For huggingface this `(2 x 2 x sequence length x hidden size)
+3. Activation Memory = When you use LoRA even though your model params don't have grad their results still need to be stored to do backward through them (these take the most memory). There is no simple formula here, it depends on the implementation.
+4. Optimizer/Grad memory = Memory taken by `.grad` tensors & tensors associated with the optimizer (`running avg` etc.)
+5. Cuda etc. overhead = Around 500-1GB memory is taken by CUDA whenever cuda is loaded, this varies. Also there are additional overheads when you use any quantization (like bitsandbytes). Again no straightforward formula   
+
+
 ### Why are the results wrong?
 Sometimes the answers might be very wrong in which case please open an issue here & I will try to fix it.
+
 
 ### TODO
 1. Add support for exLlama
