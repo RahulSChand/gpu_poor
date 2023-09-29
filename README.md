@@ -70,7 +70,7 @@ The results can vary depending on your model, input data, cuda version & what qu
 
 `Total memory = model size + kv-cache + activation memory + optimizer/grad memory + cuda etc. overhead`
 1. Model size = this is your `.bin` file size (divide it by 2 if Q8 quant & by 4 if Q4 quant).
-2. KV-Cache = Memory taken by KV (key-value) vectors. Size =  `(2 x sequence length x hidden size)` **per layer**. For huggingface this `(2 x 2 x sequence length x hidden size)
+2. KV-Cache = Memory taken by KV (key-value) vectors. Size =  `(2 x sequence length x hidden size)` _per layer_. For huggingface this `(2 x 2 x sequence length x hidden size)` _per layer_
 3. Activation Memory = When you use LoRA even though your model params don't have grad their results still need to be stored to do backward through them (these take the most memory). There is no simple formula here, it depends on the implementation.
 4. Optimizer/Grad memory = Memory taken by `.grad` tensors & tensors associated with the optimizer (`running avg` etc.)
 5. Cuda etc. overhead = Around 500-1GB memory is taken by CUDA whenever cuda is loaded, this varies. Also there are additional overheads when you use any quantization (like bitsandbytes). Again no straightforward formula   
