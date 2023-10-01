@@ -36,10 +36,15 @@ The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It 
   "cuda + other overhead":  500
 }
 ```
+
+---
+
 ### Can't we just look at the model size & figure this out?
 
 Finding which LLMs your GPU can handle isn't as easy as looking at the model size because during inference (KV cache) takes susbtantial amount of memory. For example, with sequence length 1000 on llama-2-7b it takes 1GB of extra memory (using hugginface LlamaForCausalLM, with exLlama & vLLM this is 500MB). And during training both KV cache & activations & quantization overhead take a lot of memory. For example, llama-7b with bnb int8 quant is of size ~7.5GB but it isn't possible to finetune it using LoRA on data with 1000 context length even with RTX 4090 24 GB. Which means an additional 16GB memory goes into quant overheads, activations & grad memory.
- 
+
+---
+
 ### How to use
 
 #### Model Name/ID/Size
@@ -58,7 +63,7 @@ Finding which LLMs your GPU can handle isn't as easy as looking at the model siz
 1. What is the length of your prompt+new maximum tokens generated. Or for training this is the sequence length of your training data. Batch sizes are 1 for inference & can be specified for training. The option to specify batch sizes for inference needs to be added.
 
 
-
+---
 
 ### How reliable are the numbers?
 The results can vary depending on your model, input data, cuda version & what quant you are using & it is impossible to predict exact values. I have tried to take these into account & make sure the results are within 500MB. Below table I cross-check 3b,7b & 13b model memories given by the website vs. what what I get on my RTX 4090 & 2060 GPUs. All values are within 500MB. 
@@ -79,6 +84,7 @@ The results can vary depending on your model, input data, cuda version & what qu
 ### Why are the results wrong?
 Sometimes the answers might be very wrong in which case please open an issue here & I will try to fix it.
 
+---
 
 ### TODO
 1. Add support for exLlama
