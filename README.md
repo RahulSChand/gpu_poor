@@ -74,11 +74,11 @@ The results can vary depending on your model, input data, cuda version & what qu
 ### How are the values calculated? 
 
 `Total memory = model size + kv-cache + activation memory + optimizer/grad memory + cuda etc. overhead`
-1. Model size = this is your `.bin` file size (divide it by 2 if Q8 quant & by 4 if Q4 quant).
-2. KV-Cache = Memory taken by KV (key-value) vectors. Size =  `(2 x sequence length x hidden size)` _per layer_. For huggingface this `(2 x 2 x sequence length x hidden size)` _per layer_
-3. Activation Memory = When you use LoRA even though your model params don't have grad their results still need to be stored to do backward through them (these take the most memory). There is no simple formula here, it depends on the implementation.
-4. Optimizer/Grad memory = Memory taken by `.grad` tensors & tensors associated with the optimizer (`running avg` etc.)
-5. Cuda etc. overhead = Around 500-1GB memory is taken by CUDA whenever cuda is loaded, this varies. Also there are additional overheads when you use any quantization (like bitsandbytes). Again no straightforward formula   
+1. **Model size** = this is your `.bin` file size (divide it by 2 if Q8 quant & by 4 if Q4 quant).
+2. **KV-Cache** = Memory taken by KV (key-value) vectors. Size =  `(2 x sequence length x hidden size)` _per layer_. For huggingface this `(2 x 2 x sequence length x hidden size)` _per layer_. In training the whole sequence is processed at once (therefore KV cache memory = 0)
+3. **Activation Memory** = In forward pass every operation's output has to be stored for doing `.backward()`. For example if you do `output = Q * input` where `Q = (dim, dim)` and `input = (batch, seq, dim)` then output of shape `(batch, seq, dim)` will need to be stored (in fp16). This consumes the most memory in LoRA/QLoRA. In LLMs there are many such intermediate steps (after Q,K,V and after attention, after norm, after FFN1, FFN2, FFN3, after skip layer ....) Around 15 intermediate representations are saved _per layer_. 
+4. **Optimizer/Grad memory** = Memory taken by `.grad` tensors & tensors associated with the optimizer (`running avg` etc.)
+5. **Cuda etc. overhead** = Around 500-1GB memory is taken by CUDA whenever cuda is loaded. Also there are additional overheads when you use any quantization (like bitsandbytes). There is not straightforward formula here (I assume 650 MB overhead in my calculations for cuda overhead)
 
 
 ### Why are the results wrong?
