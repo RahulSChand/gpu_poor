@@ -17,7 +17,7 @@ Link: **https://rahulschand.github.io/gpu_poor/**
 
 1. Added autocomplete for ease of use
 
-![new_autocomplete_2](https://github.com/RahulSChand/gpu_poor/assets/16897807/cddf1f1e-65fd-41dd-a92f-85cebe6ec70f)
+![new_autocomplete_3](https://github.com/RahulSChand/gpu_poor/assets/16897807/01a3ff57-c354-4e76-afb0-be0192a0ba6f)
 
 
 2. Updated config list with new Huggingface trending models (Llava/Mistral/Trismegistus etc.)
