@@ -13,6 +13,13 @@ Link: **https://rahulschand.github.io/gpu_poor/**
 
 
 
+#### Additions
+
+1. Have added autocomplete for ease of use
+
+![new_autocomplete](https://github.com/RahulSChand/gpu_poor/assets/16897807/cb485c28-bbd5-4646-b44e-819228658614)
+
+
 
 
 ### Purpose
