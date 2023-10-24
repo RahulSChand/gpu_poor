@@ -21,6 +21,7 @@ Link: **https://rahulschand.github.io/gpu_poor/**
 
 2. Added newly added Huggingface trending models
 
+---
 
 ### Purpose
 
