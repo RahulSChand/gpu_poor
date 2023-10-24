@@ -19,7 +19,7 @@ Link: **https://rahulschand.github.io/gpu_poor/**
 
 ![new_autocomplete](https://github.com/RahulSChand/gpu_poor/assets/16897807/cb485c28-bbd5-4646-b44e-819228658614)
 
-2. Added newly added Huggingface trending models (Llava/Mistral/Trismegistus etc.)
+2. Updated config list with new Huggingface trending models (Llava/Mistral/Trismegistus etc.)
 
 ---
 
