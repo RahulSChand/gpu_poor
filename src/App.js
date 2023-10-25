@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import TextInput from "./textBox";
 import Modal from "react-modal";
 
@@ -942,6 +942,11 @@ function App() {
 
     const [modalIsOpen, setIsOpen] = React.useState(false);
 
+    const [responseCache, setResponseCache] = useState(null); 
+    const [responseCacheKeys, setResponseCacheKeys] = useState(null); 
+
+    const [suggestions, setSuggestions] = useState([]);
+
     const [jsonData, setJsonData] = useState(null);
 
     function openModal() {
@@ -1032,7 +1037,7 @@ function App() {
             openModal();
             return;
         }
-        let parsedConfig = await fetchParams(specialMapping(modelName));
+        let parsedConfig = responseCache.hasOwnProperty(modelName) ? responseCache[modelName] : null; 
         const out = getAllComputedData(
             parsedConfig,
             jsonData,
@@ -1072,6 +1077,36 @@ function App() {
     //   // console.log()
 
     // };
+
+    useEffect(() => {
+        // Your function here to populate myVariable
+        const fetchData = async () => {
+          // Fetch data or perform some other operation
+          let response = await fetch(configPath);
+          response = await response.json();
+          setResponseCache(response);
+          setResponseCacheKeys(Object.keys(response));
+        };
+    
+        fetchData();
+    }, []); 
+
+    useEffect(() => {
+        if (modelName) {
+            if (modelName.length>2){
+          const filtered = responseCacheKeys.filter(item => item.startsWith(modelName) && item !== modelName);
+          setSuggestions(filtered.slice(0,10));
+            }
+            else{
+                setSuggestions([]);
+            }
+        }
+        else{
+            setSuggestions([]);
+        }
+      }, [modelName]);
+
+    console.log(responseCache);
 
     return (
         <div className="App">
@@ -1123,12 +1158,25 @@ function App() {
                             <label className="text-sm font-mono pr-4">
                                 Model Name (Hugginface ID)
                             </label>
+                            <div>
                             <TextInput
                                 className="w-64 font-mono input border border-black text-sm"
                                 value={modelName}
                                 setValue={setModelName}
                                 placeholder="e.g. meta-llama/Llama-2-7b-hf"
                             />
+                            <ul className="mt-2 border rounded divide-y">
+                            {suggestions.map((item, index) => (
+                            <li 
+                                key={index} 
+                                onClick={() => setModelName(item)}
+                                className="p-2 hover:bg-gray-200 cursor-pointer"
+                            >
+                                {item}
+                            </li>
+                            ))}
+                        </ul>
+                            </div>
                         </div>
                         <label className="text-sm">OR</label>
 
