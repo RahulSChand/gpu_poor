@@ -22,6 +22,7 @@ Link: **https://rahulschand.github.io/gpu_poor/**
 
 2. Updated config list with new Huggingface trending models (Llava/Mistral/Trismegistus etc.)
 
+3. Fixed bitsandbytes quantization overhead calculation (before it was linear in terms of context length, fixed it to be more accurate)
 ---
 
 ### Purpose
