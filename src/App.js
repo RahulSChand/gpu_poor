@@ -298,7 +298,7 @@ function getGradOptMemory(
 
 function getExtraMemory(parsedConfig, quant, contextLen) {
     const constant_8_extra = 0.75;
-    const constant_4_extra = 1.5;
+    const constant_4_extra = 0.75;
     const constant_qlora = 0.75;
 
     const common =
@@ -313,7 +313,7 @@ function getExtraMemory(parsedConfig, quant, contextLen) {
     if (quant === "bnb_int8") {
         extra_mem = constant_8_extra * common * contextLen;
     }
-
+    
     if (quant === "bnb_q4") {
         extra_mem = constant_4_extra * common * contextLen;
         
@@ -946,8 +946,11 @@ function App() {
     const [responseCacheKeys, setResponseCacheKeys] = useState(null); 
 
     const [suggestions, setSuggestions] = useState([]);
+    const [selectedIdx, setSelectedIdx] = useState(-1);
 
     const [jsonData, setJsonData] = useState(null);
+
+    const [showSuggestions, setShowSuggestions] = useState(true);
 
     function openModal() {
         setIsOpen(true);
@@ -1081,6 +1084,7 @@ function App() {
     useEffect(() => {
         // Your function here to populate myVariable
         const fetchData = async () => {
+            console.log("calling!");
           // Fetch data or perform some other operation
           let response = await fetch(configPath);
           response = await response.json();
@@ -1094,7 +1098,7 @@ function App() {
     useEffect(() => {
         if (modelName) {
             if (modelName.length>2){
-          const filtered = responseCacheKeys.filter(item => item.startsWith(modelName) && item !== modelName);
+          const filtered = responseCacheKeys.filter(item => item.startsWith(modelName));
           setSuggestions(filtered.slice(0,10));
             }
             else{
@@ -1106,7 +1110,21 @@ function App() {
         }
       }, [modelName]);
 
-    console.log(responseCache);
+    // console.log(responseCache);
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'ArrowDown') {
+            
+        e.preventDefault();
+          setSelectedIdx(prevIdx => Math.min(prevIdx + 1, suggestions.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedIdx(prevIdx => Math.max(prevIdx - 1, -1));
+        } else if (e.key === 'Enter' && selectedIdx >= 0) {
+          setModelName(suggestions[selectedIdx]);
+          setShowSuggestions(false);
+        }
+      };
 
     return (
         <div className="App">
@@ -1163,19 +1181,23 @@ function App() {
                                 className="w-64 font-mono input border border-black text-sm"
                                 value={modelName}
                                 setValue={setModelName}
+                                setChange={setShowSuggestions}
+                                handleKeyDown={handleKeyDown}
                                 placeholder="e.g. meta-llama/Llama-2-7b-hf"
                             />
+                            {modelName && showSuggestions && (
                             <ul className="mt-2 border rounded divide-y">
-                            {suggestions.map((item, index) => (
-                            <li 
-                                key={index} 
-                                onClick={() => setModelName(item)}
-                                className="p-2 hover:bg-gray-200 cursor-pointer"
-                            >
-                                {item}
-                            </li>
-                            ))}
-                        </ul>
+                                {suggestions.map((item, index) => (
+                                <li 
+                                    key={index} 
+                                    onClick={() => { setModelName(item); setShowSuggestions(false); console.log(showSuggestions); }}
+                                    className={`p-2 ${selectedIdx === index ? 'bg-gray-300' : 'hover:bg-gray-200'} cursor-pointer`}
+                                >
+                                    {item}
+                                </li>
+                                ))}
+                            </ul>
+                            )}
                             </div>
                         </div>
                         <label className="text-sm">OR</label>

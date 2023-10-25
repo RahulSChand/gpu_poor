@@ -9,7 +9,12 @@ function TextInput(props) {
     <input
       className={props.className}
       value={props.value}
-      onChange={e => fun(e.target.value)}
+      onChange={e => { fun(e.target.value); 
+        if (typeof props.setChange === 'function') {
+          props.setChange(true);
+        }
+      }}
+      onKeyDown={props.handleKeyDown}
       placeholder={props.placeholder}
     />
   );
