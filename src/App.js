@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import TextInput from "./textBox";
 import Modal from "react-modal";
+import fullText from "./textContent";
+import gpuJSONData from "./gpu_config.json";
+import cpuJSONData from "./cpu_config.json";
 
 const billion = 1000000000;
+const tera = 1000000000 * 1000;
 let configPath = "/gpu_poor/all_configs.json";
 if (
     window.location.hostname === "localhost" ||
@@ -228,7 +232,6 @@ function getGradOptMemory(
         );
     }
 
-    
     //------------
     if (full === "full_trn" && opt === "sgd_opt" && quant === "no_quant") {
         return modelSize * 1 * floatBytes;
@@ -247,7 +250,6 @@ function getGradOptMemory(
             getExtraMemory(parsedConfig, quant, contextLen) * batchSize
         );
     }
-
 
     //4*layer*8*hid*4*2
 
@@ -298,7 +300,7 @@ function getGradOptMemory(
 
 function getExtraMemory(parsedConfig, quant, contextLen) {
     const constant_8_extra = 0.75;
-    const constant_4_extra = 0.75;
+    const constant_4_extra = 1.0;
     const constant_qlora = 0.75;
 
     const common =
@@ -309,19 +311,32 @@ function getExtraMemory(parsedConfig, quant, contextLen) {
         parsedConfig.num_layers;
 
     let extra_mem = 0;
+    let contextLenSqrtRoot = 1.0;
+    // if (contextLen > 100){
+    //     contextLenSqrtRoot = Math.round(Math.sqrt(contextLen));
+    // }
+    // else{
+    //     contextLenSqrtRoot = contextLen;
+    // }
+    const baseLen = 50;
+    const ratioContextLen = contextLen / 50;
+    if (ratioContextLen > 1.0) {
+        contextLenSqrtRoot = Math.sqrt(ratioContextLen);
+    }
 
     if (quant === "bnb_int8") {
-        extra_mem = constant_8_extra * common * contextLen;
+        extra_mem =
+            constant_8_extra * common * baseLen * contextLenSqrtRoot * 1.25;
     }
-    
+
     if (quant === "bnb_q4") {
-        extra_mem = constant_4_extra * common * contextLen;
-        
+        extra_mem =
+            constant_4_extra * common * baseLen * contextLenSqrtRoot * 1.0;
     }
 
     if (quant === "qlora") {
-        extra_mem = constant_qlora * common * contextLen;
-        
+        extra_mem =
+            constant_qlora * common * baseLen * contextLenSqrtRoot * 1.0;
     }
 
     console.log("extra mem", extra_mem);
@@ -427,23 +442,21 @@ function checkCombinationTrainInference(
     setErrorMessage,
     openModal,
     typeOfTrn
-    ){
-
+) {
     //! Can't train full with QLoRA
-    if ((typeOfTrn==='full_trn') && ggml_quants.includes(quantType)){
+    if (typeOfTrn === "full_trn" && ggml_quants.includes(quantType)) {
         setErrorMessage("Can't use GGML for training");
         openModal();
         return false;
     }
-    if (typeOfTrn==="qlora" && quantType!='no_quant'){
-        setErrorMessage("QLoRA is 4bit explicit. No need to select a quant type if you are training using QLoRA. Set it to 'None'");
+    if (typeOfTrn === "qlora" && quantType != "no_quant") {
+        setErrorMessage(
+            "QLoRA is 4bit explicit. No need to select a quant type if you are training using QLoRA. Set it to 'None'"
+        );
         openModal();
         return false;
     }
     return true;
-    
-
-
 }
 
 function checkCombinationInference(
@@ -452,8 +465,6 @@ function checkCombinationInference(
     setErrorMessage,
     openModal
 ) {
-    
-
     if (ggml_quants.includes(quantType)) {
         if (trnType != "inf_ggml") {
             setErrorMessage(
@@ -470,8 +481,7 @@ function checkCombinationInference(
     }
     if (
         trnType === "inf_ggml" &&
-        (quantType === "bnb_int8" ||
-            quantType === "bnb_q4")
+        (quantType === "bnb_int8" || quantType === "bnb_q4")
     ) {
         setErrorMessage("ggml doesn't support bnb");
         openModal();
@@ -607,49 +617,47 @@ function getDefault(modelSize) {
     let heads = null;
     let numLayers = null;
 
-    function getApprox(modelSize){
-        let vocabR=null, headsR=null, numLayersR = null
-        if (modelSize<5){
+    function getApprox(modelSize) {
+        let vocabR = null,
+            headsR = null,
+            numLayersR = null;
+        if (modelSize < 5) {
             vocabR = 32000;
             headsR = 32;
             numLayersR = 24;
-            return [vocabR, headsR, numLayersR]        
+            return [vocabR, headsR, numLayersR];
         }
-        if (modelSize<10){
+        if (modelSize < 10) {
             vocabR = 32000;
             headsR = 32;
             numLayersR = 32;
-            return [vocabR, headsR, numLayersR]        
+            return [vocabR, headsR, numLayersR];
         }
-        if (modelSize<24){
+        if (modelSize < 24) {
             vocabR = 32000;
             headsR = 40;
             numLayersR = 40;
-            return [vocabR, headsR, numLayersR]        
+            return [vocabR, headsR, numLayersR];
         }
 
-        if (modelSize<55){
+        if (modelSize < 55) {
             vocabR = 32000;
             headsR = 64;
             numLayersR = 48;
-            return [vocabR, headsR, numLayersR]        
+            return [vocabR, headsR, numLayersR];
         }
 
-        
         vocabR = 32000;
         headsR = 64;
         numLayersR = 80;
-        return [vocabR, headsR, numLayersR];      
-        }
+        return [vocabR, headsR, numLayersR];
+    }
 
-    
-
-    [vocab,heads,numLayers] = getApprox(modelSize);
-    
+    [vocab, heads, numLayers] = getApprox(modelSize);
 
     //vocab*h + numLayers*4*h*h + 3*4*h*h*numLayers = modelSize*10^9
     const A = numLayers * 4 + 3 * 4 * numLayers;
-    const B = 2*vocab;
+    const B = 2 * vocab;
     const C = -1 * modelSize * billion;
 
     let h = (-B + Math.sqrt(B * B - 4 * A * C)) / (2 * A);
@@ -784,7 +792,11 @@ function getAllComputedData(
     if (quantType === "bnb_q4" || typeOfTrn === "qlora") {
         fB = 0.5;
     }
-    let modelSizeinMB = convertToMBModelSize(modelSizeinB, quantType, typeOfTrn);
+    let modelSizeinMB = convertToMBModelSize(
+        modelSizeinB,
+        quantType,
+        typeOfTrn
+    );
     // console.log(modelSizeinB);
 
     //!Inference
@@ -851,10 +863,14 @@ function getAllComputedData(
         totalMemory =
             inferenceMemory + modelSizeinMB + overHead + activationMemory;
     } else {
-
         // console.log("training!");
 
-        let checkSanity = checkCombinationTrainInference(quantType, setErrorMessage, openModal, typeOfTrn);
+        let checkSanity = checkCombinationTrainInference(
+            quantType,
+            setErrorMessage,
+            openModal,
+            typeOfTrn
+        );
         if (!checkSanity) {
             return null;
         }
@@ -925,32 +941,72 @@ function isNumberOrFloat(value) {
 function isValidPositiveInteger(input) {
     const num = parseFloat(input);
     console.log(num, input);
-    return Number.isInteger(num) && num > 0 && input.trim() !== "";
+    console.log("isvalid :", input);
+
+    return Number.isInteger(num) && num > 0;
 }
+
+function getGPUDataFromJSON() {}
 
 function App() {
     // let subtitle;
     const [modelSize, setModelSize] = useState("");
-    const [modelName, setModelName] = useState("");
+    const [modelName, setModelName] = useState("meta-llama/Llama-2-7b-hf");
     const [contextLen, setContextLen] = useState("");
-    const [batchSize, setBatchSize] = useState("");
-    const [totalMemoryShown, setTotalMemoryShown] = useState(" ");
-    const [breakDownMemory, setBreakDownMemory] = useState(" ");
+
+    const [promptLen, setPromptLen] = useState("");
+
+    const [batchSize, setBatchSize] = useState(1);
+    const [totalMemoryShown, setTotalMemoryShown] = useState(0);
+
+    const [gpuJsonDataForTable, setGPUJSONDataForTable] = useState([]);
+    const [cpuJsonDataForTable, setCPUJSONDataForTable] = useState([]);
+
+    // const [breakDownMemory, setBreakDownMemory] = useState(" ");
+
+    const [breakDownMemoryJson, setBreakDownMemoryJson] = useState([]);
+
     const [errorMessage, setErrorMessage] = useState("");
 
     const [fileNameUpload, setFileNameUpload] = useState("");
 
     const [modalIsOpen, setIsOpen] = React.useState(false);
 
-    const [responseCache, setResponseCache] = useState(null); 
-    const [responseCacheKeys, setResponseCacheKeys] = useState(null); 
+    const [responseCache, setResponseCache] = useState(null);
+    const [responseCacheKeys, setResponseCacheKeys] = useState(null);
 
     const [suggestions, setSuggestions] = useState([]);
     const [selectedIdx, setSelectedIdx] = useState(-1);
+    const [tokenPerSecond, setTokenPerSecond] = useState("");
+
+    const [numGPU, setNumGPU] = useState(1);
+    const [numGPUINeed, setNumGPUINeed] = useState(null);
+    const [memReqHardwareName, setMemReqHardwareName] = useState("");
+    const [compReqHardwareName, setCompReqHardwareName] = useState("");
+
+    const [numOffload, setNumOffLoad] = useState(1);
+
+    const [computedTokenPerSecond, setComputedTokenPerSecond] = useState(1);
 
     const [jsonData, setJsonData] = useState(null);
 
+    const [jsonDataCompute, setJsonDataCompute] = useState(null);
+
     const [showSuggestions, setShowSuggestions] = useState(true);
+
+    const [showTable, setShowTable] = useState(false);
+    const [showTableGPU, setShowTableGPU] = useState(false);
+    const [showTableCPU, setShowTableCPU] = useState(false);
+    const [showTableCompute, setShowTableCompute] = useState(false);
+    const [faqOpen, setFaqOpen] = useState(false);
+
+    // const th_css = "py-2 px-4 border bg-gray-200 text-gray-600 ";
+
+    // const jsonDataSample = [
+    //     { index: 1, name: "Alice", value: 30 },
+    //     { index: 2, name: "Bob", value: 40 },
+    //     { index: 3, name: "Carol", value: 50 },
+    // ];
 
     function openModal() {
         setIsOpen(true);
@@ -963,9 +1019,67 @@ function App() {
     const handleFileClear = (event) => {
         setFileNameUpload("");
         setJsonData(null);
-        setTotalMemoryShown("");
-        setBreakDownMemory("");
+        // setTotalMemoryShown("");
+        // setBreakDownMemory("");
     };
+
+    const [displayedText, setDisplayedText] = useState("");
+    const [isVisible, setIsVisible] = useState(true);
+    const intervalIdRef = useRef(null);
+    const wordIndexRef = useRef(0);
+    const timeoutIdRef = useRef(null);
+
+    const handleClickGenerateText = () => {
+        let token_per_second = parseInt(tokenPerSecond, 10);
+
+        setIsVisible(true);
+        const words = fullText.split(/[\s,.;!?]+/);
+        console.log(words);
+        wordIndexRef.current = 0; // reset word index
+        setDisplayedText("");
+
+        // Clear any existing interval before setting up a new one
+        if (intervalIdRef.current) {
+            clearInterval(intervalIdRef.current);
+        }
+        if (timeoutIdRef.current) {
+            clearTimeout(timeoutIdRef.current);
+        }
+
+        intervalIdRef.current = setInterval(() => {
+            if (wordIndexRef.current < words.length - 1) {
+                wordIndexRef.current++;
+                setDisplayedText((prevText) => {
+                    if (prevText) {
+                        return prevText + " " + words[wordIndexRef.current];
+                    }
+                    return words[wordIndexRef.current]; // No preceding space for the first word
+                });
+            }
+        }, 1000 / token_per_second);
+    };
+
+    const handleClearGeneratedText = () => {
+        if (intervalIdRef.current) {
+            clearInterval(intervalIdRef.current);
+        }
+        if (timeoutIdRef.current) {
+            clearTimeout(timeoutIdRef.current);
+        }
+        setDisplayedText("");
+        setIsVisible(false);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (intervalIdRef.current) {
+                clearInterval(intervalIdRef.current);
+            }
+            if (timeoutIdRef.current) {
+                clearTimeout(timeoutIdRef.current);
+            }
+        };
+    }, []);
 
     const handleFileChange = (event) => {
         const file = event.target.files[0];
@@ -998,7 +1112,9 @@ function App() {
         dropdownFullOrNot: "full_trn",
         dropdownOpt: "adam_opt",
         dropdownQuant: "no_quant",
-        dropdownGPU: "rtx_3090",
+        dropdownGPU: "rtx-2060",
+        dropdownCPU: "3600x",
+        isGPUorCPU: "usingGPU",
     });
 
     const handleChangeSelection = (e) => {
@@ -1015,21 +1131,408 @@ function App() {
 
     const [output1, setOutput1] = useState("");
 
-    async function handleClickTokS() {
-        setErrorMessage("To be added");
-        openModal();
+    function enchanceGPUJSONData(onlyNumGPUJsonData) {
+        const newJsonData = {
+            Name: selections.dropdownGPU.toUpperCase(),
+            bandwidth: onlyNumGPUJsonData["bandwidth"] + " GB",
+            compute: onlyNumGPUJsonData["compute"] + " TFlops/s",
+            memory: onlyNumGPUJsonData["memory"] + " GB",
+        };
+        return newJsonData;
+    }
+
+    function enchanceCPUJSONData(onlyNumCPUJsonData) {
+        const newJsonData = {
+            Name: selections.dropdownCPU.toUpperCase(),
+            "Rated Speed": onlyNumCPUJsonData["Speed"] + " MT/s",
+            Cores: onlyNumCPUJsonData["Cores"],
+            "Memory Support": onlyNumCPUJsonData["Memory"],
+            "Memory Bus": onlyNumCPUJsonData["Bus"] + " Channel",
+        };
+        return newJsonData;
+    }
+
+    // function getTotalFlops(parsedConfig){
+
+    //     let totalFlops = 0;
+    //     totalFlops += vocab*hiddenDim*2; //embedding
+    //     totalFlops += hiddenDim*hiddenDim*2 //qkvo
+
+    // }
+
+    function getTotalFlopsForKV(parsedConfig, batchSize, contextLen) {
+        const hidDim = parsedConfig["hiddenDim"];
+        return 2 * contextLen * contextLen * hidDim * batchSize;
+    }
+
+    function convertGBToByte(sizeInGB) {
+        return sizeInGB * 1024 * 1024 * 1024;
+    }
+
+    function convertByteToGB(sizeInByte) {
+        return sizeInByte / (1024 * 1024 * 1024);
+    }
+
+    function convertByteToMB(sizeInByte) {
+        return sizeInByte / (1024 * 1024);
+    }
+
+    function getFloatRatio_F16(quant) {
+        return 1.0;
+    }
+
+    function getCPUSpeedFromSpecs(speed, bus, memory) {
+        const busMap = { Dual: 2.0, Quad: 4.0, Hexa: 6.0, Octa: 8.0 };
+
+        const busValue = busMap[bus];
+        const rateMult = 8.0;
+
+        const memInGBPerSecond = (busValue * rateMult * speed) / 1024;
+
+        return memInGBPerSecond;
+    }
+
+    function getFloatRatio_F16_CPU(quantType) {
+        let k_values = [2, 3, 4, 5, 6, 8, 16];
+        for (let k of k_values) {
+            if (quantType.includes(k.toString())) {
+                return k / 16;
+            }
+        }
+        return 1.0;
+    }
+
+    function token_per_second_logic_CPU(
+        cpuDataOnlyNum,
+        parsedJSONData,
+        promptLen,
+        contextLen,
+        batchSize,
+        setErrorMessage,
+        openModal
+    ) {
+        console.log(cpuDataOnlyNum);
+        const speed = cpuDataOnlyNum["Speed"];
+        const bus = cpuDataOnlyNum["Bus"];
+        const memory = cpuDataOnlyNum["Memory"];
+        const cpu_compute = cpuDataOnlyNum["Flops"] * 0.5;
+
+        const cpu_bandwidth = getCPUSpeedFromSpecs(speed, bus, memory);
+
+        const quantType = selections.dropdownQuant;
+
+        let parsedConfig = getParseConfig(
+            parsedJSONData,
+            setErrorMessage,
+            openModal
+        );
+        const numLayers = parsedConfig["num_layers"],
+            hiddenDim = parsedConfig["hiddenDim"];
+
+        let memoryTransfer =
+            computeModelSizeGGML(parsedConfig, quantType) * 1024 * 1024;
+        if (quantType === "no_quant") {
+            memoryTransfer = computeModelSize(parsedConfig);
+        }
+
+        const extraFactorCPU = 1.5;
+        //! Prompt Time Calculation
+        //Time to process prompt (depending on contextLen this is either compute bound or memory bound)
+        //Since the prompts are usually (above >50, i think it is safe to say this is mostly COMPUTE BOUND)
+
+        // console.log("this is memory: ",convertByteToMB(memoryTransfer),quantType);
+
+        console.log(
+            "Theory: ",
+            promptLen,
+            memoryTransfer,
+            numLayers,
+            hiddenDim,
+            batchSize
+        );
+        let theoryTimePrompt =
+            2 * promptLen * memoryTransfer +
+            2 * numLayers * hiddenDim * hiddenDim * 2 * promptLen;
+        theoryTimePrompt = batchSize * theoryTimePrompt;
+
+        console.log("first: ", theoryTimePrompt);
+        let theoryTimePrompt_in_ms =
+            theoryTimePrompt / (tera * (cpu_compute / 1000.0));
+
+        // console.log("first: ",theoryTimePrompt_in_ms)
+        console.log("mem trans: ", convertByteToMB(memoryTransfer));
+        let finalPromptTime =
+            theoryTimePrompt_in_ms * getFloatRatio_F16_CPU(quantType) +
+            convertByteToMB(memoryTransfer) * (0.008 / 1000);
+
+        // const totalFlopsInB = 2*batchSize*modelSizeinB*billion + getTotalFlopsForKV(parsedConfig, batchSize, contextLen);
+
+        //! Per token Time calculation
+        const utilizationRate = 1.0;
+        const kv_cache_memory = 2 * 2 * numLayers * hiddenDim * contextLen;
+
+        let timeIfMemory =
+            convertByteToGB(2 * memoryTransfer + kv_cache_memory) /
+            (utilizationRate * cpu_bandwidth);
+        let timeIfMemory_in_ms = timeIfMemory * 1000 * extraFactorCPU;
+
+        //! Check if it is compute bound
+
+        console.log(
+            memoryTransfer,
+            numLayers,
+            hiddenDim,
+            batchSize,
+            cpu_compute,
+            extraFactorCPU
+        );
+        let totalFlopsToken =
+            2 * memoryTransfer + 2 * numLayers * hiddenDim * hiddenDim * 2;
+        totalFlopsToken = batchSize * totalFlopsToken;
+        let timeIfFlops_in_ms =
+            (totalFlopsToken * 1000) / (tera * (cpu_compute / 1000.0));
+        timeIfFlops_in_ms = timeIfFlops_in_ms * extraFactorCPU;
+
+        let finalTimeToConsider = null;
+        let memoryOrCompute = null;
+
+        if (timeIfMemory_in_ms > timeIfFlops_in_ms) {
+            finalTimeToConsider = timeIfMemory_in_ms;
+            memoryOrCompute = "memory";
+        } else {
+            finalTimeToConsider = timeIfFlops_in_ms;
+            memoryOrCompute = "compute";
+        }
+
+        let token_per_s = 1000 / finalTimeToConsider; //finalTimeToConsider is time in ms for each token. So divide by 1000
+
+        setComputedTokenPerSecond(Math.round(token_per_s));
+
+        const jsonComputeReturnData = {
+            "Token/s":
+                Math.round(token_per_s) >= 1 ? Math.round(token_per_s) : "< 1",
+            "ms per token": finalTimeToConsider.toFixed(2),
+            // "ms per token (compute bound)": timeIfFlops_in_ms.toFixed(2),
+            "Prompt process Time (s)": finalPromptTime.toFixed(2),
+            "memory or compute bound?": memoryOrCompute,
+        };
+
+        setJsonDataCompute(jsonComputeReturnData);
+        setShowTableCompute(true);
+    }
+
+    function token_per_second_logic_GPU(
+        gpuDataOnlyNum,
+        parsedJSONData,
+        promptLen,
+        contextLen,
+        batchSize,
+        setErrorMessage,
+        openModal
+    ) {
+        const gpu_bandwidth = gpuDataOnlyNum["bandwidth"];
+        const gpu_compute = gpuDataOnlyNum["compute"];
+
+        const trnType = selections.dropdownTrnOrNot;
+        const quantType = selections.dropdownQuant;
+
+        let extraFactor = 1.0;
+
+        if (trnType === "inf") {
+            extraFactor = 2.0;
+        }
+
+        let parsedConfig = getParseConfig(
+            parsedJSONData,
+            setErrorMessage,
+            openModal
+        );
+        const numLayers = parsedConfig["num_layers"],
+            hiddenDim = parsedConfig["hiddenDim"];
+
+        const memoryTransfer = computeModelSize(parsedConfig);
+
+        //! Prompt Time Calculation
+        //Time to process prompt (depending on contextLen this is either compute bound or memory bound)
+        //Since the prompts are usually (above >50, i think it is safe to say this is mostly COMPUTE BOUND)
+
+        let theoryTimePrompt =
+            2 * promptLen * memoryTransfer +
+            2 * numLayers * hiddenDim * hiddenDim * 2 * promptLen;
+        theoryTimePrompt = batchSize * theoryTimePrompt;
+        let theoryTimePrompt_in_ms = theoryTimePrompt / (tera * gpu_compute);
+
+        let finalPromptTime =
+            theoryTimePrompt_in_ms * getFloatRatio_F16(quantType) * 1.8 +
+            convertByteToMB(memoryTransfer) * (0.008 / 100);
+
+        // const totalFlopsInB = 2*batchSize*modelSizeinB*billion + getTotalFlopsForKV(parsedConfig, batchSize, contextLen);
+
+        //! Per token Time calculation
+        const utilizationRate = 1.0;
+        const kv_cache_memory = 2 * 2 * numLayers * hiddenDim * contextLen;
+
+        let timeIfMemory =
+            convertByteToGB(
+                2 * memoryTransfer * extraFactor + kv_cache_memory * extraFactor
+            ) /
+            (utilizationRate * gpu_bandwidth);
+        let timeIfMemory_in_ms = timeIfMemory * 1000;
+
+        //! Check if it is compute bound
+        let totalFlopsToken =
+            2 * memoryTransfer + 2 * numLayers * hiddenDim * hiddenDim * 2;
+        totalFlopsToken = batchSize * totalFlopsToken;
+        let timeIfFlops_in_ms = (totalFlopsToken * 1000) / (tera * gpu_compute);
+
+        let finalTimeToConsider = null;
+        let memoryOrCompute = null;
+
+        if (timeIfMemory_in_ms > timeIfFlops_in_ms) {
+            finalTimeToConsider = timeIfMemory_in_ms;
+            memoryOrCompute = "memory";
+        } else {
+            finalTimeToConsider = timeIfFlops_in_ms;
+            memoryOrCompute = "compute";
+        }
+
+        if (!isValidPositiveInteger(numGPU)) {
+            setErrorMessage("Number of GPUs have to be positive number (>0)");
+            openModal();
+            return;
+        }
+
+        if (numGPU > 1) {
+            finalTimeToConsider = (finalTimeToConsider * 1.25) / numGPU;
+        }
+
+        let token_per_s = 1000 / finalTimeToConsider; //finalTimeToConsider is time in ms for each token. So divide by 1000
+
+        setComputedTokenPerSecond(Math.round(token_per_s));
+
+        const jsonComputeReturnData = {
+            "Token/s":
+                Math.round(token_per_s) >= 1 ? Math.round(token_per_s) : "< 1",
+            "ms per token": finalTimeToConsider.toFixed(2),
+            // "ms per token (compute bound)": timeIfFlops_in_ms.toFixed(2),
+            "Prompt process Time (s)": finalPromptTime.toFixed(2),
+            "memory or compute bound?": memoryOrCompute,
+        };
+
+        setJsonDataCompute(jsonComputeReturnData);
+        setShowTableCompute(true);
+    }
+
+    function showGPUSpecs() {
+        const gpuDataOnlyNum = gpuJSONData[selections.dropdownGPU];
+        setGPUJSONDataForTable(enchanceGPUJSONData(gpuDataOnlyNum));
+        setShowTableGPU(true);
+    }
+
+    function showCPUSpecs() {
+        const cpuDataOnlyNum = cpuJSONData[selections.dropdownCPU];
+        setCPUJSONDataForTable(enchanceCPUJSONData(cpuDataOnlyNum));
+        setShowTableCPU(true);
+    }
+
+    function handleClickTokS() {
+        // setErrorMessage("To be added");
+        // openModal();
+        if (
+            !isValidPositiveInteger(contextLen) ||
+            !isValidPositiveInteger(promptLen)
+        ) {
+            setErrorMessage(
+                "context len & promt len should be positive numbers (>0)"
+            );
+            openModal();
+            return;
+        }
+
+        if (
+            selections.isGPUorCPU === "usingCPU" &&
+            selections.trnType != "inf_ggml"
+        ) {
+            setErrorMessage(
+                "Inference with CPU only makes applicable(sensible) for GGML"
+            );
+            openModal();
+            return;
+        }
+
+        if (selections.trnType != "inf_vLLM") {
+            setErrorMessage(
+                "Still working on adding vLLM. For now, as a rule of thumb, vLLM is 2-3x faster (than HF) when serving requests at your GPUs capacity"
+            );
+            openModal();
+            return;
+        }
+
+        if (selections.trnType === "trn") {
+            setErrorMessage(
+                "Token/s doesn't make sense for training, as whole sequence is generated at once. But how much time will one forward/backward pass take makese sense. I haven't added that yet."
+            );
+            openModal();
+            return;
+        }
+
+        console.log(gpuJSONData);
+        console.log(cpuJSONData);
+        console.log(selections.dropdownGPU);
+
+        const gpuDataOnlyNum = gpuJSONData[selections.dropdownGPU];
+        const cpuDataOnlyNum = cpuJSONData[selections.dropdownCPU];
+
+        let parsedConfig = responseCache.hasOwnProperty(modelName)
+            ? responseCache[modelName]
+            : null;
+
+        if (parsedConfig === null) {
+            setErrorMessage("Huggingface ID not present");
+            openModal();
+            return;
+        }
+
+        if (selections.isGPUorCPU === "usingGPU") {
+            token_per_second_logic_GPU(
+                gpuDataOnlyNum,
+                parsedConfig,
+                promptLen,
+                contextLen,
+                batchSize,
+                setErrorMessage,
+                openModal
+            );
+            setCompReqHardwareName(selections.dropdownGPU);
+        } else {
+            token_per_second_logic_CPU(
+                cpuDataOnlyNum,
+                parsedConfig,
+                promptLen,
+                contextLen,
+                batchSize,
+                setErrorMessage,
+                openModal
+            );
+            setCompReqHardwareName(selections.dropdownCPU);
+        }
         return;
     }
 
     async function handleReset() {
         setFileNameUpload("");
         setJsonData(null);
-        setTotalMemoryShown("");
-        setBreakDownMemory("");
-        setContextLen("");
+        // setTotalMemoryShown("");
+        // setBreakDownMemory("");
+        setContextLen(1);
+        setPromptLen(1);
+        setShowTableGPU(false);
+        setShowTable(false);
         setBatchSize("");
         setModelSize("");
         setModelName("");
+        setShowTableCPU(false);
+        setShowTableCompute(false);
     }
 
     async function handleClick() {
@@ -1040,12 +1543,25 @@ function App() {
             openModal();
             return;
         }
-        let parsedConfig = responseCache.hasOwnProperty(modelName) ? responseCache[modelName] : null; 
+        let parsedConfig = responseCache.hasOwnProperty(modelName)
+            ? responseCache[modelName]
+            : null;
+
+        if (
+            !isValidPositiveInteger(contextLen) ||
+            !isValidPositiveInteger(promptLen)
+        ) {
+            setErrorMessage(
+                "context len & promt len should be positive numbers (>0)"
+            );
+            openModal();
+        }
+
         const out = getAllComputedData(
             parsedConfig,
             jsonData,
             modelSize,
-            contextLen,
+            parseInt(contextLen) + parseInt(promptLen),
             2,
             selections,
             setErrorMessage,
@@ -1057,9 +1573,26 @@ function App() {
             return;
         }
 
-        setTotalMemoryShown(`Total Memory: ${out["Total"]} MB`);
-        const jsonOut = JSON.stringify(out);
-        setBreakDownMemory(`Breakdown(in MB): ${jsonOut}`);
+        // setTotalMemoryShown(`Total Memory: ${out["Total"]} MB`);
+        // const jsonOut = JSON.stringify(out);
+        // setBreakDownMemory(`Breakdown(in MB): ${jsonOut}`);
+        setTotalMemoryShown(out["Total"]);
+        console.log(out);
+
+        setShowTable(true);
+
+        // setGPUJSONDataForTable(
+        //     enchanceGPUJSONData(gpuJSONData[selections.dropdownGPU])
+        // );
+
+        let numGPUsINeed = Math.ceil(
+            out["Total"] /
+                (1024 * gpuJSONData[selections.dropdownGPU]["memory"])
+        );
+        // const nameOfGPUForNeed = selections.dropdownGPU + ' GPUs Needed'
+        setNumGPUINeed(numGPUsINeed);
+        setMemReqHardwareName(selections.dropdownGPU);
+        setBreakDownMemoryJson(out);
     }
 
     // const handleClick = () => {
@@ -1085,46 +1618,62 @@ function App() {
         // Your function here to populate myVariable
         const fetchData = async () => {
             console.log("calling!");
-          // Fetch data or perform some other operation
-          let response = await fetch(configPath);
-          response = await response.json();
-          setResponseCache(response);
-          setResponseCacheKeys(Object.keys(response));
+            // Fetch data or perform some other operation
+            let response = await fetch(configPath);
+            response = await response.json();
+            setResponseCache(response);
+            setResponseCacheKeys(Object.keys(response));
         };
-    
+
         fetchData();
-    }, []); 
+    }, []);
 
     useEffect(() => {
-        if (modelName) {
-            if (modelName.length>2){
-          const filtered = responseCacheKeys.filter(item => item.startsWith(modelName));
-          setSuggestions(filtered.slice(0,10));
-            }
-            else{
+        if (modelName && responseCacheKeys) {
+            if (modelName.length > 2) {
+                const filtered = responseCacheKeys.filter((item) =>
+                    item.startsWith(modelName)
+                );
+                setSuggestions(filtered.slice(0, 10));
+            } else {
                 setSuggestions([]);
             }
-        }
-        else{
+        } else {
             setSuggestions([]);
         }
-      }, [modelName]);
+    }, [modelName]);
+
+    // useEffect(() => {
+    //     if (modelName) {
+    //         if (modelName.length > 2) {
+    //             const filtered = responseCacheKeys.filter((item) =>
+    //                 item.startsWith(modelName)
+    //             );
+    //             setSuggestions(filtered.slice(0, 10));
+    //         } else {
+    //             setSuggestions([]);
+    //         }
+    //     } else {
+    //         setSuggestions([]);
+    //     }
+    // }, [modelName]);
 
     // console.log(responseCache);
 
     const handleKeyDown = (e) => {
-        if (e.key === 'ArrowDown') {
-            
-        e.preventDefault();
-          setSelectedIdx(prevIdx => Math.min(prevIdx + 1, suggestions.length - 1));
-        } else if (e.key === 'ArrowUp') {
+        if (e.key === "ArrowDown") {
             e.preventDefault();
-            setSelectedIdx(prevIdx => Math.max(prevIdx - 1, -1));
-        } else if (e.key === 'Enter' && selectedIdx >= 0) {
-          setModelName(suggestions[selectedIdx]);
-          setShowSuggestions(false);
+            setSelectedIdx((prevIdx) =>
+                Math.min(prevIdx + 1, suggestions.length - 1)
+            );
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setSelectedIdx((prevIdx) => Math.max(prevIdx - 1, -1));
+        } else if (e.key === "Enter" && selectedIdx >= 0) {
+            setModelName(suggestions[selectedIdx]);
+            setShowSuggestions(false);
         }
-      };
+    };
 
     return (
         <div className="App">
@@ -1148,73 +1697,83 @@ function App() {
                             <div className="text-bold">{errorMessage}</div>
                         </div>
                     </Modal>
-                    <div className="pt-3 font-bold text-center font-mono">
+                    <div className="pt-3 font-bold text-center font-poppins">
                         <span className="text-2xl">Are you GPU poor?</span>{" "}
                         <span className="text-2xl hover:text-3xl">🫵🤨</span>
                     </div>
-                    <div className="text-center text-l font-mono pb-2">
-                        Calculate how much GPU memory you need to run a
-                        particular LLM
+                    <div className="text-center text-l font-poppins pb-1">
+                        Calculate GPU memory and token/s for a particular LLM
                     </div>
                     <div className="flex pb-1 content-center justify-center">
                         <img
                             className="transform transition-transform duration-300 hover:scale-110 border border-gray-600 hover:border-2"
                             src="/gpu_poor/itsovermeme.png"
                             alt="meme"
-                            style={{ width: "125px", height: "125px" }}
+                            style={{ width: "75px", height: "75px" }}
                         />
-                        <p className="font-mono pr-2 pl-2 pt-8">OR</p>
+                        <p className="font-poppins pr-2 pl-2 pt-8">OR</p>
                         <img
                             className="transform transition-transform duration-300 hover:scale-110 border border-gray-600 hover:border-2"
                             src="/gpu_poor/weback.jpg"
                             alt="meme"
-                            style={{ width: "125px", height: "125px" }}
+                            style={{ width: "75px", height: "75px" }}
                         />
                     </div>
-                    <div className="border border-gray-400 p-4 rounded-lg inline-block hover:border-black">
+                    <div className="flex flex-row">
                         <div>
-                            <label className="text-sm font-mono pr-4">
-                                Model Name (Hugginface ID)
-                            </label>
-                            <div>
-                            <TextInput
-                                className="w-64 font-mono input border border-black text-sm"
-                                value={modelName}
-                                setValue={setModelName}
-                                setChange={setShowSuggestions}
-                                handleKeyDown={handleKeyDown}
-                                placeholder="e.g. meta-llama/Llama-2-7b-hf"
-                            />
-                            {modelName && showSuggestions && (
-                            <ul className="mt-2 border rounded divide-y">
-                                {suggestions.map((item, index) => (
-                                <li 
-                                    key={index} 
-                                    onClick={() => { setModelName(item); setShowSuggestions(false); console.log(showSuggestions); }}
-                                    className={`p-2 ${selectedIdx === index ? 'bg-gray-300' : 'hover:bg-gray-200'} cursor-pointer`}
-                                >
-                                    {item}
-                                </li>
-                                ))}
-                            </ul>
-                            )}
-                            </div>
-                        </div>
-                        <label className="text-sm">OR</label>
+                            <div className="border border-gray-400 p-3 rounded-lg inline-block hover:border-black">
+                                <label className="text-sm font-poppins pr-4">
+                                    Name (Hugginface ID)
+                                </label>
 
-                        <div>
-                            <label className="pr-4 text-sm font-mono">
-                                Model Size (in Billion)
-                            </label>
-                            <TextInput
-                                className="w-64 input border text-sm font-mono border-black"
-                                value={modelSize}
-                                setValue={setModelSize}
-                                placeholder="e.g. for llama-7b enter 7"
-                            />
-                        </div>
-                        <div className="text-sm pr-4 pb-1">OR</div>
-                        <div className="flex">
+                                <TextInput
+                                    className="w-64 font-poppins input border border-black text-sm"
+                                    value={modelName}
+                                    setValue={setModelName}
+                                    setChange={setShowSuggestions}
+                                    handleKeyDown={handleKeyDown}
+                                    placeholder="e.g. meta-llama/Llama-2-7b-hf"
+                                />
+                                {modelName && showSuggestions && (
+                                    <ul className="mt-2 border rounded divide-y">
+                                        {suggestions.map((item, index) => (
+                                            <li
+                                                key={index}
+                                                onClick={() => {
+                                                    setModelName(item);
+                                                    setShowSuggestions(false);
+                                                    console.log(
+                                                        showSuggestions
+                                                    );
+                                                }}
+                                                className={`p-2 ${
+                                                    selectedIdx === index
+                                                        ? "bg-gray-300"
+                                                        : "hover:bg-gray-200"
+                                                } cursor-pointer`}
+                                            >
+                                                {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+
+                                <div>
+                                    <label className="text-sm">OR</label>
+                                </div>
+                                <div>
+                                    <label className="pr-4 text-sm font-poppins">
+                                        Size (in Billion)
+                                    </label>
+                                    <TextInput
+                                        className="w-48 input border text-sm font-poppins border-black"
+                                        value={modelSize}
+                                        setValue={setModelSize}
+                                        placeholder="e.g. for llama-7b enter 7"
+                                    />
+                                </div>
+                                {/* <div className="text-sm pr-4 pb-1">OR</div> */}
+                                {/* <div className="flex">
                             <div>
                                 <input
                                     type="file"
@@ -1225,7 +1784,7 @@ function App() {
                                 />
                                 <label
                                     htmlFor="fileInput"
-                                    className="text-sm font-mono px-1 py-1 bg-gray-200 border border-gray-300 cursor-pointer hover:bg-gray-300"
+                                    className="text-sm font-poppins px-1 py-1 bg-gray-200 border border-gray-300 cursor-pointer hover:bg-gray-300"
                                 >
                                     Upload model config
                                 </label>
@@ -1235,187 +1794,657 @@ function App() {
                             </div>
                             <div className="pl-6">
                                 <button
-                                    className="text-xs font-mono bg-gray-100   border border-gray-300 cursor-pointer hover:bg-gray-300"
+                                    className="text-xs font-poppins bg-gray-100   border border-gray-300 cursor-pointer hover:bg-gray-300"
                                     onClick={handleFileClear}
                                 >
                                     Clear file
                                 </button>
                             </div>
-                        </div>
-                    </div>
+                        </div> */}
+                            </div>
 
-                    <br></br>
+                            <br></br>
+                            <div className="border border-gray-400 p-2 rounded-lg inline-block hover:border-black mt-2">
+                                <div className="pb-2">
+                                    <label className="font-poppins text-sm pr-4">
+                                        Train or Inference?
+                                    </label>
+                                    <select
+                                        className="font-poppins text-sm border border-gray-500"
+                                        name="dropdownTrnOrNot"
+                                        onChange={handleChangeSelection}
+                                    >
+                                        <option value="inf">
+                                            Inference (Huggingface)
+                                        </option>
+                                        <option value="inf_vLLM">
+                                            Inference (vLLM)
+                                        </option>
+                                        {/* <option value="inf_exL">
+                                        Inference (exLlama)
+                                    </option> */}
+                                        <option value="inf_ggml">
+                                            Inference (GGML)
+                                        </option>
+                                        <option value="trn">
+                                            Training (Huggingface)
+                                        </option>
+                                    </select>
+                                </div>
 
-                    <div className="pb-2 pt-1">
-                        <label className="font-mono text-sm pr-4">
-                            Training or Inference?
-                        </label>
-                        <select
-                            className="font-mono text-sm border border-gray-500"
-                            name="dropdownTrnOrNot"
-                            onChange={handleChangeSelection}
-                        >
-                            <option value="inf">Inference (Huggingface)</option>
-                            <option value="inf_vLLM">Inference (vLLM)</option>
-                            <option value="inf_exL">Inference (exLlama)</option>
-                            <option value="inf_ggml">Inference (GGML)</option>
-                            <option value="trn">Training (Huggingface)</option>
-                        </select>
-                    </div>
+                                <div className="flex pb-2 pt-1">
+                                    <div className="pr-6">
+                                        <label className="font-poppins text-sm pr-2">
+                                            Train method?
+                                        </label>
+                                        <select
+                                            className="font-poppins text-sm border border-gray-500"
+                                            name="dropdownFullOrNot"
+                                            onChange={handleChangeSelection}
+                                        >
+                                            <option value="full_trn">
+                                                Full
+                                            </option>
+                                            <option value="lora_trn">
+                                                LoRA
+                                            </option>
+                                            <option value="qlora">QLoRA</option>
+                                        </select>
+                                    </div>
+                                    <div className="pr-6">
+                                        <label className="text-sm pr-2 font-poppins">
+                                            Optimizer?
+                                        </label>
+                                        <select
+                                            className="text-sm font-poppins border border-gray-500"
+                                            name="dropdownOpt"
+                                            onChange={handleChangeSelection}
+                                        >
+                                            <option value="adam_opt">
+                                                ADAM
+                                            </option>
+                                            <option value="sgd_opt">SGD</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="font-poppins text-sm pr-2">
+                                            Quant?
+                                        </label>
+                                        <select
+                                            className="font-poppins text-sm border border-gray-500"
+                                            name="dropdownQuant"
+                                            onChange={handleChangeSelection}
+                                        >
+                                            <option value="no_quant">
+                                                None
+                                            </option>
+                                            <optgroup label="-----"></optgroup>
+                                            <option value="bnb_int8">
+                                                bnb int8
+                                            </option>
+                                            <option value="bnb_q4">
+                                                bnb int4
+                                            </option>
 
-                    <div className="flex pb-2">
-                        <div className="pr-6">
-                            <label className="font-mono text-sm pr-2">
-                                Training method?
-                            </label>
-                            <select
-                                className="font-mono text-sm border border-gray-500"
-                                name="dropdownFullOrNot"
-                                onChange={handleChangeSelection}
-                            >
-                                <option value="full_trn">Full</option>
-                                <option value="lora_trn">LoRA</option>
-                                <option value="qlora">QLoRA</option>
-                            </select>
-                        </div>
-                        <div className="pr-6">
-                            <label className="text-sm pr-2 font-mono">
-                                Optimizer?
-                            </label>
-                            <select
-                                className="text-sm font-mono border border-gray-500"
-                                name="dropdownOpt"
-                                onChange={handleChangeSelection}
-                            >
-                                <option value="adam_opt">ADAM</option>
-                                <option value="sgd_opt">SGD</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="font-mono text-sm pr-2">
-                                Quantization?
-                            </label>
-                            <select
-                                className="font-mono text-sm border border-gray-500"
-                                name="dropdownQuant"
-                                onChange={handleChangeSelection}
-                            >
-                                <option value="no_quant">None</option>
-                                <optgroup label="-----"></optgroup>
-                                <option value="bnb_int8">bnb int8</option>
-                                <option value="bnb_q4">bnb int4</option>
-                                
-                                <optgroup label="-----"></optgroup>
-                                <option value="ggml_Q2_K">GGML Q2_K</option>
+                                            <optgroup label="-----"></optgroup>
+                                            <option value="ggml_Q2_K">
+                                                GGML Q2_K
+                                            </option>
 
-                                <option value="ggml_Q3_K_L">GGML Q3_K_L</option>
-                                <option value="ggml_Q3_K_M">GGML Q3_K_M</option>
+                                            <option value="ggml_Q3_K_L">
+                                                GGML Q3_K_L
+                                            </option>
+                                            <option value="ggml_Q3_K_M">
+                                                GGML Q3_K_M
+                                            </option>
 
-                                <option value="ggml_QK4_0">GGML QK4_0</option>
-                                <option value="ggml_QK4_1">GGML QK4_1</option>
-                                <option value="ggml_QK4_K_M">
-                                    GGML QK4_K_M
-                                </option>
-                                <option value="ggml_QK4_K_S">
-                                    GGML QK4_K_S
-                                </option>
+                                            <option value="ggml_QK4_0">
+                                                GGML QK4_0
+                                            </option>
+                                            <option value="ggml_QK4_1">
+                                                GGML QK4_1
+                                            </option>
+                                            <option value="ggml_QK4_K_M">
+                                                GGML QK4_K_M
+                                            </option>
+                                            <option value="ggml_QK4_K_S">
+                                                GGML QK4_K_S
+                                            </option>
 
-                                <option value="ggml_QK5_0">GGML QK5_0</option>
-                                <option value="ggml_QK5_1">GGML QK5_1</option>
-                                <option value="ggml_QK5_K_M">
-                                    GGML QK5_K_M
-                                </option>
+                                            <option value="ggml_QK5_0">
+                                                GGML QK5_0
+                                            </option>
+                                            <option value="ggml_QK5_1">
+                                                GGML QK5_1
+                                            </option>
+                                            <option value="ggml_QK5_K_M">
+                                                GGML QK5_K_M
+                                            </option>
 
-                                <option value="ggml_Q6_K">GGML Q6_K</option>
+                                            <option value="ggml_Q6_K">
+                                                GGML Q6_K
+                                            </option>
 
-                                <option value="ggml_QK8_0">GGML QK8_0</option>
-                            </select>
-                        </div>
-                    </div>
+                                            <option value="ggml_QK8_0">
+                                                GGML QK8_0
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
 
-                    <div className="flex">
-                        <div>
-                            <label className="font-mono text-sm">
-                                Context/train seq length?{" "}
-                            </label>
-                            <TextInput
-                                className="w-32 input border text-sm font-mono border-black"
-                                setValue={setContextLen}
-                                value={contextLen}
-                                placeholder="Total Tokens?"
-                            />
-                        </div>
-                        <div className="pl-8">
-                            <label className="font-mono text-sm">
-                                Batch-size?(only for train){" "}
-                            </label>
-                            <TextInput
-                                className="w-24 input border text-sm font-mono border-black"
-                                setValue={setBatchSize}
-                                value={batchSize}
-                                placeholder="Default 1"
-                            />
-                        </div>
-                        <div className="pl-4">
-                            <label className="font-mono text-sm pr-2">
-                                GPU?(to be added)
-                            </label>
-                            <select
-                                className="font-mono text-sm border border-gray-500 hover:cursor-not-allowed"
-                                name="dropdownGPU"
-                                onChange={handleChangeSelection}
-                            >
-                                <option value="rtx_3090">RTX 3090</option>
-                                <option value="rtx_4090">RTX 4090</option>
-                                <option value="rtx_4080">RTX 4080</option>
-                                <option value="rtx_4060">RTX 4060</option>
-                                <option value="rtx_2060">RTX 2060</option>
-                                <option value="rtx_2070">RTX 2070</option>
-                                <option value="a_6000">A 6000</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <br></br>
-                        {/* <button className='bg-green-50' onClick={handleClick}>Generate Outputs</button> */}
-                        <div className="flex">
-                            <div className="pr-6">
-                                <button
-                                    class="font-mono border text-sm border-blue-500 px-4 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200"
-                                    onClick={handleClick}
-                                >
-                                    Find Memory requirement
-                                </button>
+                                <div className="flex pt-1">
+                                    <div>
+                                        <label className="font-poppins text-sm">
+                                            Prompt len?{" "}
+                                        </label>
+                                        <TextInput
+                                            className="w-10 input border text-sm font-poppins border-black"
+                                            setValue={setPromptLen}
+                                            value={promptLen}
+                                            placeholder="?"
+                                        />
+                                    </div>
+                                    <div className="pl-3">
+                                        <label className="font-poppins text-sm">
+                                            Tokens to Generate?{" "}
+                                        </label>
+                                        <TextInput
+                                            className="w-10 input border text-sm font-poppins border-black"
+                                            setValue={setContextLen}
+                                            value={contextLen}
+                                            placeholder="?"
+                                        />
+                                    </div>
+                                    <div className="pl-4">
+                                        <label className="font-poppins text-sm">
+                                            Batch-size?{" "}
+                                        </label>
+                                        <TextInput
+                                            className="w-8 input border text-sm font-poppins border-black"
+                                            setValue={setBatchSize}
+                                            value={batchSize}
+                                            placeholder="1"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col border border-gray-400 p-3 rounded-lg mt-2 hover:border-black">
+                                <div>
+                                    <label className="font-poppins font-extrabold text-base pr-2">
+                                        GPU or CPU?
+                                    </label>
+                                    <select
+                                        className="font-poppins text-sm border border-gray-500"
+                                        name="isGPUorCPU"
+                                        onChange={handleChangeSelection}
+                                    >
+                                        <option value="usingGPU">GPU</option>
+                                        <option value="usingCPU">CPU</option>
+                                    </select>
+                                </div>
+                                {selections.isGPUorCPU === "usingGPU" && (
+                                    <div className="flex pt-3 flex-row">
+                                        <div>
+                                            <label className="font-poppins font-semibold text-sm pr-2">
+                                                GPU
+                                            </label>
+                                            <select
+                                                className="font-poppins text-sm border border-gray-500"
+                                                name="dropdownGPU"
+                                                onChange={handleChangeSelection}
+                                            >
+                                                <option value="rtx-2060">
+                                                    RTX 2060
+                                                </option>
+                                                <option value="rtx-2070">
+                                                    RTX 2070
+                                                </option>
+                                                <option value="rtx-3060">
+                                                    RTX 3060
+                                                </option>
+                                                <option value="rtx-3090">
+                                                    RTX 3090
+                                                </option>
+                                                <option value="rtx-4060">
+                                                    RTX 4060
+                                                </option>
+                                                <option value="rtx-4090">
+                                                    RTX 4090
+                                                </option>
+                                                <option value="P-100">
+                                                    P 100
+                                                </option>
+                                                <option value="A-4000">
+                                                    A 4000
+                                                </option>
+                                                <option value="A-6000">
+                                                    A 6000
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div className="pl-5">
+                                            <label className="font-poppins text-sm pr-2">
+                                                No. of GPUs?
+                                            </label>
+                                            <TextInput
+                                                className="w-8 input border text-sm font-poppins border-black"
+                                                value={numGPU}
+                                                setValue={setNumGPU}
+                                                placeholder="1"
+                                            />
+                                        </div>
+                                        <div>
+                                            <button
+                                                className="ml-5 border px-0.5 border-red-500 bg-red-100 font-poppins text-sm text-red-700 hover:bg-red-200"
+                                                onClick={showGPUSpecs}
+                                            >
+                                                Get GPU specs
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selections.isGPUorCPU === "usingCPU" && (
+                                    <div className="pt-2 flex flex-row">
+                                        <div className="">
+                                            <label className="font-poppins font-semibold text-sm pr-2">
+                                                CPU
+                                            </label>
+                                            <select
+                                                className="font-poppins text-sm border border-gray-500"
+                                                name="dropdownCPU"
+                                                onChange={handleChangeSelection}
+                                            >
+                                                <option value="3600x">
+                                                    AMD 3600XT
+                                                </option>
+                                                <option value="7950x">
+                                                    AMD 7950x
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div className="pl-5">
+                                            <label className="font-poppins text-sm pr-2 hover:cursor-not-allowed">
+                                                Layers to offload?{" "}
+                                                <span className="text-red-800">
+                                                    (to be added)
+                                                </span>
+                                            </label>
+                                            <TextInput
+                                                className="w-8 input border text-sm font-poppins border-black hover:cursor-not-allowed"
+                                                value={numOffload}
+                                                setValue={setNumOffLoad}
+                                                placeholder="1"
+                                                disableStatus={true}
+                                            />
+                                        </div>
+                                        <div>
+                                            <button
+                                                className="ml-5 border px-0.5 border-red-500 bg-red-100 font-poppins text-sm text-red-700 hover:bg-red-200"
+                                                onClick={showCPUSpecs}
+                                            >
+                                                Get CPU specs
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div>
+                                <br></br>
+                                {/* <button className='bg-green-50' onClick={handleClick}>Generate Outputs</button> */}
+                                <div className="flex">
+                                    <div className="pr-6">
+                                        <button
+                                            class="font-poppins border text-sm border-blue-500 px-4 py-2 bg-blue-100 text-blue-700 hover:bg-blue-300"
+                                            onClick={handleClick}
+                                        >
+                                            Find Memory requirement
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button
+                                            class="font-poppins border text-sm border-green-500 px-4 py-2 bg-green-100 text-green-700 hover:bg-green-300"
+                                            onClick={handleClickTokS}
+                                        >
+                                            Find ~tokens/s
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <button
+                                            class="font-poppins border text-sm ml-6 border-red-500 px-1 py-2 bg-red-100 text-red-700 hover:bg-red-300"
+                                            onClick={handleReset}
+                                        >
+                                            CLEAR
+                                        </button>
+                                    </div>
+                                    {/* <div className="pl-4 pt-1">
                                 <button
-                                    class="font-mono border text-sm border-red-500 px-4 py-2 bg-red-100 text-red-700 hover:cursor-not-allowed"
-                                    onClick={handleClickTokS}
-                                >
-                                    Find ~tokens/s (to be added)
-                                </button>
-                            </div>
-                            <div className="pl-4 pt-1">
-                                <button
-                                    class="font-mono border text-xs bg-gray-100 border-gray-500  text-black hover:bg-gray-300"
+                                    class="font-poppins border text-xs bg-gray-100 border-gray-500  text-black hover:bg-gray-300"
                                     onClick={handleReset}
                                 >
                                     Reset
                                 </button>
+                            </div> */}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pl-4 border-l-2 border-gray-400 flex-shrink-0 ml-8">
+                            <div className="font-poppins text-lg font-semibold">
+                                How does
+                                <span className="font-bold text-blue-400">
+                                    {" "}
+                                    X{" "}
+                                </span>
+                                tokens/s look like?
+                            </div>
+                            <div>
+                                <div>
+                                    <label className="pr-2 text-lg font-poppins">
+                                        Enter Token/s:
+                                    </label>
+                                    <TextInput
+                                        className="w-12 input border text-base font-poppins border-black"
+                                        value={tokenPerSecond}
+                                        setValue={setTokenPerSecond}
+                                        placeholder="50"
+                                    />
+                                    <button
+                                        className="ml-4 border px-0.5 border-red-500 bg-red-100 font-poppins text-red-700 hover:bg-red-200"
+                                        onClick={handleClickGenerateText}
+                                    >
+                                        Generate Text
+                                    </button>
+                                    <button
+                                        className="ml-4 border px-0.5 border-red-500 bg-red-100 font-poppins text-red-700 hover:bg-red-200"
+                                        onClick={handleClearGeneratedText}
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="pt-1 whitespace-normal overflow-hidden max-w-5xl font-poppins">
+                                {isVisible && <div>{displayedText}</div>}
                             </div>
                         </div>
                     </div>
                     <br></br>
-                    <hr></hr>
-                    <div className="font-bold font-mono">
+                    <hr className="h-1 bg-gray-100"></hr>
+                    {/* <div className="font-bold font-poppins">
                         {totalMemoryShown}
-                    </div>
-                    <div className="font-bold font-mono">{breakDownMemory}</div>
-                </div>
-                <br></br>
-                <br></br>
+                    </div> */}
+                    <div className="flex flex-row">
+                        <div className="px-2 py-1">
+                            {showTable && (
+                                <>
+                                    <div className="text-sm font-poppins font-bold">
+                                        Memory Requirement for:{" "}
+                                        {memReqHardwareName}
+                                    </div>
+                                    <table className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
+                                        <tbody>
+                                            {/* Total row */}
+                                            <tr className="bg-blue-100 text-sm">
+                                                <td className="py-1 px-2 font-bold border-black border-r-0">
+                                                    Total
+                                                </td>
+                                                <td className="py-1 px-2 border">
+                                                    <span className="font-bold">
+                                                        {" "}
+                                                        {
+                                                            totalMemoryShown
+                                                        } MB{" "}
+                                                    </span>
+                                                </td>
+                                            </tr>
 
-                <div className="text-xs text-gray-600 font-semibold">
+                                            {/* Breakdown row */}
+                                            <tr>
+                                                <td
+                                                    className="text-xs text-center border-2 border-black"
+                                                    colSpan="2"
+                                                >
+                                                    Breakdown
+                                                </td>
+                                            </tr>
+
+                                            {/* Name-Value pairs */}
+                                            {Object.entries(
+                                                breakDownMemoryJson
+                                            ).map(([key, value], index) => {
+                                                if (key === "Total") {
+                                                    return null; // Skip this iteration and return nothing
+                                                }
+
+                                                return (
+                                                    <tr
+                                                        className={`${
+                                                            index % 2 === 0
+                                                                ? "bg-blue-100"
+                                                                : "bg-blue-50"
+                                                        }`}
+                                                        key={index}
+                                                    >
+                                                        <td className="py-1 px-2 text-sm border">
+                                                            {key}
+                                                        </td>
+                                                        <td className="py-1 px-2 text-sm border">
+                                                            {value} MB
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                            <tr className="bg-gray-200">
+                                                <td className="py-1 px-2 text-sm border">
+                                                    GPUs needed
+                                                </td>
+                                                <td className="py-1 px-2 text-sm border">
+                                                    {numGPUINeed}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </>
+                            )}
+                            {/* <button
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white"
+                        onClick={() => {
+                        navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
+                        }}
+                    >
+                        Copy to Clipboard
+                    </button> */}
+                        </div>
+                        <div className="py-1">
+                            {showTableCompute && (
+                                <div>
+                                    <div className="text-sm font-poppins font-bold">
+                                        Tokens/s stats for:{" "}
+                                        {compReqHardwareName}
+                                    </div>
+                                    {/* {selections.isGPUorCPU==='usingGPU' ? selections.dropdownGPU : selections.dropdownCPU} */}
+                                    <table className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
+                                        <tbody>
+                                            {/* Name-Value pairs */}
+                                            {Object.entries(
+                                                jsonDataCompute
+                                            ).map(([key, value], index) => {
+                                                if (key === "Total") {
+                                                    return null; // Skip this iteration and return nothing
+                                                }
+
+                                                return (
+                                                    <tr
+                                                        className={`${
+                                                            index % 2 === 0
+                                                                ? "bg-violet-100"
+                                                                : "bg-violet-50"
+                                                        }`}
+                                                        key={index}
+                                                    >
+                                                        <td className="py-1 px-2 text-sm border">
+                                                            {key}
+                                                        </td>
+                                                        <td className="py-1 px-2 text-sm border">
+                                                            {value}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    <div className="text-xs font-poppins text-red-700">
+                                        Check above to see how{" "}
+                                        {computedTokenPerSecond} token/s looks
+                                        like
+                                    </div>
+                                </div>
+                            )}
+                            {/* <button
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white"
+                        onClick={() => {
+                        navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
+                        }}
+                    >
+                        Copy to Clipboard
+                    </button> */}
+                        </div>
+                    </div>
+                    <div className="pt-4 flex flex-row">
+                        <div className="px-2 py-1">
+                            {showTableGPU && (
+                                <>
+                                    <div className="text-sm font-poppins font-bold">
+                                        GPU Info:
+                                    </div>
+                                    <table className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
+                                        <tbody>
+                                            {/* Total row */}
+                                            {/* Name-Value pairs */}
+                                            {Object.entries(
+                                                gpuJsonDataForTable
+                                            ).map(([key, value], index) => {
+                                                return (
+                                                    <tr
+                                                        className={`${
+                                                            index % 2 === 0
+                                                                ? "bg-teal-100"
+                                                                : "bg-teal-50"
+                                                        }`}
+                                                        key={index}
+                                                    >
+                                                        <td className="py-1 px-2 text-sm border">
+                                                            {key}
+                                                        </td>
+                                                        <td className="py-1 px-2 text-sm border">
+                                                            {value}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </>
+                            )}
+                            {/* <button
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white"
+                        onClick={() => {
+                        navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
+                        }}
+                    >
+                        Copy to Clipboard
+                    </button> */}
+                        </div>
+                        <div className="px-2 py-1">
+                            {showTableCPU && (
+                                <>
+                                    <div className="text-sm font-poppins font-bold">
+                                        CPU Info:
+                                    </div>
+                                    <table className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
+                                        <tbody>
+                                            {/* Total row */}
+                                            {/* Name-Value pairs */}
+                                            {Object.entries(
+                                                cpuJsonDataForTable
+                                            ).map(([key, value], index) => {
+                                                return (
+                                                    <tr
+                                                        className={`${
+                                                            index % 2 === 0
+                                                                ? "bg-teal-100"
+                                                                : "bg-teal-50"
+                                                        }`}
+                                                        key={index}
+                                                    >
+                                                        <td className="py-1 px-2 text-sm border">
+                                                            {key}
+                                                        </td>
+                                                        <td className="py-1 px-2 text-sm border">
+                                                            {value}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </>
+                            )}
+                            {/* <button
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white"
+                        onClick={() => {
+                        navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
+                        }}
+                    >
+                        Copy to Clipboard
+                    </button> */}
+                        </div>
+                    </div>
+                    {/* <div className="font-bold font-poppins">{breakDownMemory}</div> */}
+                </div>
+                <div>
+                    <div>
+                        <a
+                            className="text-xs underline font-mono text-blue-600 hover:font-bold"
+                            href="https://github.com/RahulSChand/gpu_poor/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Github repo (documentation)
+                        </a>
+                    </div>
+                    <div
+                        className="cursor-pointer text-black"
+                        onClick={() => setFaqOpen(!faqOpen)}
+                    >
+                        <h2 className="font-mono text-sm text-bold underline hover:font-extrabold">
+                            Read FAQ 🔽
+                        </h2>
+                    </div>
+
+                    {faqOpen && (
+                        <ul className="list-disc pl-5 text-xs font-mono">
+                            <li>
+                                These are APPORXIMATE values. They can vary by
+                                +-15% depending on your CPU, GPU, cuda version,
+                                llama.cpp version, model etc.
+                            </li>
+                            <li>
+                                For training, the total context length will be
+                                prompt Len + Generate Len. The correct (ideal)
+                                use case is to set generate = 1 for training,
+                                since all training is next token prediction
+                                loss.
+                            </li>
+                            <li>
+                                CPU inference is only compatible with GGML. You
+                                can't use CPU with HF/vLLM
+                            </li>
+                            <li>GPU + CPU is not yet supported</li>
+                        </ul>
+                    )}
+                </div>
+
+                {/* <div className="text-xs text-gray-600 font-semibold">
                     PS: These are approximate values & may vary by 500MB-1GB
                     depending on the GPU, model, input, cuda version etc. If
                     your setup has ~1GB over the requirement you should likely
@@ -1430,7 +2459,7 @@ function App() {
                     >
                         FAQ
                     </a>
-                </div>
+                </div> */}
                 {/* <button>Show Values</button>
       <input type="text" value={output1} readOnly />
       <input type="text" value={output2} readOnly /> */}

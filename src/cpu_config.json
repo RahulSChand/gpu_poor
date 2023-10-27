@@ -1,0 +1,16 @@
+{
+    "3600x" : {
+        "Speed" :  3200,
+        "Bus" : "Dual",
+        "Cores" : 6,
+        "Memory" : "DDR4",
+        "Flops" : 297.5 
+    },
+    "7950x" : {
+        "Speed" :  5200,
+        "Bus" : "Dual",
+        "Cores" : 16,
+        "Memory" : "DDR5",
+        "Flops" : 970.0
+    }
+}

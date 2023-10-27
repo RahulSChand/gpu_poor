@@ -1,0 +1,10 @@
+{"rtx-3090": {"bandwidth": 936, "compute": 16.3, "memory": 24},
+ "rtx-4060": {"bandwidth": 288, "compute": 22.06, "memory": 16},
+ "rtx-4090": {"bandwidth": 1000, "compute": 82.58, "memory": 24},
+ "rtx-4080": {"bandwidth": 716, "compute": 63.9, "memory": 16},
+ "rtx-3060": {"bandwidth": 360, "compute": 13.0, "memory": 12},
+ "rtx-2060": {"bandwidth": 336, "compute": 13.0, "memory": 6},
+ "rtx-2070": {"bandwidth": 448, "compute": 15.0, "memory": 8},
+ "A-6000": {"bandwidth": 768, "compute": 28000, "memory": 48},
+ "A-4000": {"bandwidth": 768, "compute": 28000, "memory": 48},
+ "P-100": {"bandwidth": 1000, "compute": 28000, "memory": 24}}
