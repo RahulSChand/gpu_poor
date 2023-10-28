@@ -7,9 +7,7 @@ Calculate how much **GPU memory you need** and how much **token/s you can get** 
 Link: **https://rahulschand.github.io/gpu_poor/**
 
 
-
-
-![smaller_gif-2](https://github.com/RahulSChand/gpu_poor/assets/16897807/980047e9-cf89-4764-8576-aaf842ea83d1)
+![new_upload](https://github.com/RahulSChand/gpu_poor/assets/16897807/14250f55-e886-4cc6-9aeb-08532382860c)
 
 ---
 
