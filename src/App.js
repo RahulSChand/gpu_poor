@@ -982,7 +982,7 @@ function getGPUDataFromJSON() {}
 function App() {
     // let subtitle;
     const [modelSize, setModelSize] = useState("");
-    const [modelName, setModelName] = useState("meta-llama/Llama-2-7b-hf");
+    const [modelName, setModelName] = useState("");
     const [contextLen, setContextLen] = useState("");
 
     const [promptLen, setPromptLen] = useState("");
@@ -2517,7 +2517,7 @@ function App() {
                                     </button>
                                 </div>
                             </div>
-                            <div className="pt-1 whitespace-normal overflow-hidden max-w-5xl font-poppins">
+                            <div className="pt-1 whitespace-normal overflow-hidden max-w-2xl font-poppins">
                                 {isVisible && <div>{displayedText}</div>}
                             </div>
                         </div>
