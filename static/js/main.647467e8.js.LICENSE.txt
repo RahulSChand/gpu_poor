@@ -58,8 +58,22 @@
  * LICENSE file in the root directory of this source tree.
  */
 
+//! Backward pass *2
+
 //! Can't train full with QLoRA
 
+//! Cost due to bnb
+
+//! If I have bnb4 or bnb8 selected then put a disclaimer that it doesn't work
+
+//! In total training, we will have to move the weights back to GPU for update, so its 2x more + update all so 1.5x (approx) more. Total 3x
+
+//! Per token Time calculation
+
+//! Prompt Time Calculation
+
 //! Train
+
+//! Training is most of the time compute bound
 
 //!Inference
