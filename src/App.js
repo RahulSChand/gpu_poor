@@ -261,7 +261,7 @@ function getGradOptMemory(
     }
 
     if (full === "lora_trn" && opt === "adam_opt" && quant === "bnb_int8") {
-        console.log("here!");
+        
         return (
             parsedConfig.num_layers * 8 * parsedConfig.hiddenDim * 2 * 4 * 3 +
             getExtraMemory(parsedConfig, quant, contextLen) * batchSize
@@ -389,8 +389,6 @@ function getActivationMemory(
     // if (quant==='bnb_int8'){fB=1;}
     // if (quant==='bnb_q4'){fB=0.5;}
 
-    console.log("fb", fB);
-
     console.log("activation: ", heads, numLayers, hiddenDim, interDim);
 
     //const attn_per_layer = qkv + qk (transpose) + attn mat + attn mat convert tp fp32 + attn  mat divided by sqrt +
@@ -459,6 +457,39 @@ function checkCombinationTrainInference(
     return true;
 }
 
+function checkCombinationInferenceTok(
+    trnType,
+    quantType,
+    setErrorMessage,
+    openModal
+) {
+    if (ggml_quants.includes(quantType)) {
+        if (trnType != "inf_ggml") {
+            setErrorMessage(
+                "Invalid combination of inference type/quantization"
+            );
+            openModal();
+            return false;
+        }
+    }
+    if (quantType != "no_quant" && trnType === "inf_vLLM") {
+        setErrorMessage("vLLm doesn't support quant (maybe)");
+        openModal();
+        return false;
+    }
+    if (
+        trnType === "inf_ggml" &&
+        (quantType === "bnb_int8" || quantType === "bnb_q4")
+    ) {
+        setErrorMessage("ggml doesn't support bnb");
+        openModal();
+        return false;
+    }
+
+
+    return true;
+}
+
 function checkCombinationInference(
     trnType,
     quantType,
@@ -518,7 +549,7 @@ function sanityUploadedConfig(jsonUploadedData, setErrorMessage, openModal) {
         return null; // JSON is empty
     }
 
-    console.log(jsonUploadedData);
+    // console.log(jsonUploadedData);
 
     let vocab = 0,
         hiddenDim = 0,
@@ -885,7 +916,7 @@ function getAllComputedData(
         );
 
         activationMemory = convertToMB(activationMemory);
-        console.log("got activation", activationMemory);
+        // console.log("got activation", activationMemory);
 
         gradAndOptMemory = getGradOptMemory(
             typeOfTrn,
@@ -941,7 +972,7 @@ function isNumberOrFloat(value) {
 function isValidPositiveInteger(input) {
     const num = parseFloat(input);
     console.log(num, input);
-    console.log("isvalid :", input);
+    // console.log("isvalid :", input);
 
     return Number.isInteger(num) && num > 0;
 }
@@ -984,6 +1015,9 @@ function App() {
     const [memReqHardwareName, setMemReqHardwareName] = useState("");
     const [compReqHardwareName, setCompReqHardwareName] = useState("");
 
+    const [compReqHardwareNameBefore, setCompReqHardwareNameBefore] =
+        useState("");
+
     const [numOffload, setNumOffLoad] = useState(1);
 
     const [computedTokenPerSecond, setComputedTokenPerSecond] = useState(1);
@@ -993,11 +1027,17 @@ function App() {
     const [jsonDataCompute, setJsonDataCompute] = useState(null);
 
     const [showSuggestions, setShowSuggestions] = useState(true);
+    const [showDDR, setShowDDR] = useState([1, 0]);
 
     const [showTable, setShowTable] = useState(false);
     const [showTableGPU, setShowTableGPU] = useState(false);
     const [showTableCPU, setShowTableCPU] = useState(false);
     const [showTableCompute, setShowTableCompute] = useState(false);
+    const [showTableComputeDisclaimer, setShowTableComputeDisclaimer] =
+        useState("");
+    const [showTableComputeSmallInfo, setShowTableComputeSmallInfo] =
+        useState(0);
+
     const [faqOpen, setFaqOpen] = useState(false);
 
     // const th_css = "py-2 px-4 border bg-gray-200 text-gray-600 ";
@@ -1034,7 +1074,7 @@ function App() {
 
         setIsVisible(true);
         const words = fullText.split(/[\s,.;!?]+/);
-        console.log(words);
+        // console.log(words);
         wordIndexRef.current = 0; // reset word index
         setDisplayedText("");
 
@@ -1103,7 +1143,7 @@ function App() {
             };
             setFileNameUpload(file.name);
             reader.readAsText(file);
-            console.log(jsonData);
+            // console.log(jsonData);
         }
     };
 
@@ -1114,8 +1154,26 @@ function App() {
         dropdownQuant: "no_quant",
         dropdownGPU: "rtx-2060",
         dropdownCPU: "3600x",
+        dropdownDDR: "ddr4",
         isGPUorCPU: "usingGPU",
     });
+
+    function setDDROptions(value) {
+        let cpuSpecs = cpuJSONData[value];
+        // console.log("calling: ", cpuSpecs);
+        if (cpuSpecs["ddr4"] == 1 && cpuSpecs["ddr5"] == 1) {
+            setShowDDR([1, 1]);
+            return;
+        }
+        if (cpuSpecs["ddr4"] == 1) {
+            setShowDDR([1, 0]);
+            return;
+        }
+        if (cpuSpecs["ddr5"] == 1) {
+            setShowDDR([0, 1]);
+            return;
+        }
+    }
 
     const handleChangeSelection = (e) => {
         const { name, value } = e.target;
@@ -1123,6 +1181,10 @@ function App() {
             ...prevState,
             [name]: value,
         }));
+
+        if (name === "dropdownCPU") {
+            setDDROptions(value);
+        }
     };
 
     // const handleChangeInText1 = (event) => {
@@ -1144,11 +1206,15 @@ function App() {
     function enchanceCPUJSONData(onlyNumCPUJsonData) {
         const newJsonData = {
             Name: selections.dropdownCPU.toUpperCase(),
-            "Rated Speed": onlyNumCPUJsonData["Speed"] + " MT/s",
+            "DDR5 Rated Speed": onlyNumCPUJsonData["Speed"] + " MT/s",
+            "DDR4 Rated Speed": onlyNumCPUJsonData["speed_ddr4"] + " MT/s",
             Cores: onlyNumCPUJsonData["Cores"],
-            "Memory Support": onlyNumCPUJsonData["Memory"],
+            "DDR5 Support": Boolean(onlyNumCPUJsonData["ddr5"]).toString(),
+            "DDR4 Support": Boolean(onlyNumCPUJsonData["ddr4"]).toString(),
             "Memory Bus": onlyNumCPUJsonData["Bus"] + " Channel",
         };
+        // console.log("My data");
+        // console.log(newJsonData);
         return newJsonData;
     }
 
@@ -1181,13 +1247,23 @@ function App() {
         return 1.0;
     }
 
-    function getCPUSpeedFromSpecs(speed, bus, memory) {
+    function getCPUSpeedFromSpecs(speed, speed_ddr4, bus, memory) {
         const busMap = { Dual: 2.0, Quad: 4.0, Hexa: 6.0, Octa: 8.0 };
+
+        // console.log("speeds: ",speed, speed_ddr4, selections.dropdownDDR);
+
+        let useThiSpeed = 0;
+        if (selections.dropdownDDR==='ddr4'){
+            useThiSpeed = speed_ddr4;
+        }
+        else{
+            useThiSpeed = speed;
+        }
 
         const busValue = busMap[bus];
         const rateMult = 8.0;
 
-        const memInGBPerSecond = (busValue * rateMult * speed) / 1024;
+        const memInGBPerSecond = (busValue * rateMult * useThiSpeed) / 1024;
 
         return memInGBPerSecond;
     }
@@ -1211,13 +1287,15 @@ function App() {
         setErrorMessage,
         openModal
     ) {
-        console.log(cpuDataOnlyNum);
+        
         const speed = cpuDataOnlyNum["Speed"];
+        const speed_ddr4 = cpuDataOnlyNum["speed_ddr4"];
+
         const bus = cpuDataOnlyNum["Bus"];
         const memory = cpuDataOnlyNum["Memory"];
         const cpu_compute = cpuDataOnlyNum["Flops"] * 0.5;
 
-        const cpu_bandwidth = getCPUSpeedFromSpecs(speed, bus, memory);
+        const cpu_bandwidth = getCPUSpeedFromSpecs(speed, speed_ddr4, bus, memory);
 
         const quantType = selections.dropdownQuant;
 
@@ -1230,32 +1308,34 @@ function App() {
             hiddenDim = parsedConfig["hiddenDim"];
 
         let memoryTransfer =
-            computeModelSizeGGML(parsedConfig, quantType) * 1024 * 1024;
+            (computeModelSizeGGML(parsedConfig, quantType) * 1024 * 1024) / 2.0;
         if (quantType === "no_quant") {
             memoryTransfer = computeModelSize(parsedConfig);
         }
 
-        const extraFactorCPU = 1.5;
+        
+
+        const extraFactorCPU = 1.6;
         //! Prompt Time Calculation
         //Time to process prompt (depending on contextLen this is either compute bound or memory bound)
         //Since the prompts are usually (above >50, i think it is safe to say this is mostly COMPUTE BOUND)
 
         // console.log("this is memory: ",convertByteToMB(memoryTransfer),quantType);
-
-        console.log(
-            "Theory: ",
-            promptLen,
-            memoryTransfer,
-            numLayers,
-            hiddenDim,
-            batchSize
-        );
+        const totalLen = parseInt(contextLen) + parseInt(promptLen);
+        // console.log(
+        //     "Theory: ",
+        //     promptLen,
+        //     memoryTransfer,
+        //     numLayers,
+        //     hiddenDim,
+        //     batchSize
+        // );
         let theoryTimePrompt =
             2 * promptLen * memoryTransfer +
             2 * numLayers * hiddenDim * hiddenDim * 2 * promptLen;
         theoryTimePrompt = batchSize * theoryTimePrompt;
 
-        console.log("first: ", theoryTimePrompt);
+        // console.log("first: ", theoryTimePrompt);
         let theoryTimePrompt_in_ms =
             theoryTimePrompt / (tera * (cpu_compute / 1000.0));
 
@@ -1263,31 +1343,34 @@ function App() {
         console.log("mem trans: ", convertByteToMB(memoryTransfer));
         let finalPromptTime =
             theoryTimePrompt_in_ms * getFloatRatio_F16_CPU(quantType) +
-            convertByteToMB(memoryTransfer) * (0.008 / 1000);
+            convertByteToMB(2 * memoryTransfer) * (0.008 / 1000);
 
         // const totalFlopsInB = 2*batchSize*modelSizeinB*billion + getTotalFlopsForKV(parsedConfig, batchSize, contextLen);
 
         //! Per token Time calculation
         const utilizationRate = 1.0;
-        const kv_cache_memory = 2 * 2 * numLayers * hiddenDim * contextLen;
+        const kv_cache_memory = 2 * 2 * numLayers * hiddenDim * totalLen;
 
+        //! Why is this 2* factor here? because of float16? -> Yes!
         let timeIfMemory =
-            convertByteToGB(2 * memoryTransfer + kv_cache_memory) /
-            (utilizationRate * cpu_bandwidth);
-        let timeIfMemory_in_ms = timeIfMemory * 1000 * extraFactorCPU;
+            (convertByteToGB(2 * memoryTransfer + kv_cache_memory) /
+                (utilizationRate * cpu_bandwidth)) *
+            extraFactorCPU;
+        let timeIfMemory_in_ms = timeIfMemory * 1000;
 
         //! Check if it is compute bound
 
-        console.log(
-            memoryTransfer,
-            numLayers,
-            hiddenDim,
-            batchSize,
-            cpu_compute,
-            extraFactorCPU
-        );
+        // console.log(
+        //     memoryTransfer,
+        //     numLayers,
+        //     hiddenDim,
+        //     batchSize,
+        //     cpu_compute,
+        //     extraFactorCPU
+        // );
         let totalFlopsToken =
-            2 * memoryTransfer + 2 * numLayers * hiddenDim * hiddenDim * 2;
+            2 * memoryTransfer +
+            2 * totalLen * hiddenDim * 2 * numLayers * 2 * 2;
         totalFlopsToken = batchSize * totalFlopsToken;
         let timeIfFlops_in_ms =
             (totalFlopsToken * 1000) / (tera * (cpu_compute / 1000.0));
@@ -1321,6 +1404,101 @@ function App() {
         setShowTableCompute(true);
     }
 
+    function token_per_second_logic_Train(
+        gpuDataOnlyNum,
+        parsedJSONData,
+        promptLen,
+        contextLen,
+        batchSize,
+        setErrorMessage,
+        openModal
+    ) {
+        //! Training is most of the time compute bound
+        const gpu_bandwidth = gpuDataOnlyNum["bandwidth"];
+        const gpu_compute = gpuDataOnlyNum["compute"];
+
+        const trnType = selections.dropdownTrnOrNot;
+        const quantType = selections.dropdownQuant;
+        const totalLen = parseInt(promptLen) + parseInt(contextLen);
+
+        setShowTableComputeDisclaimer("");
+        let bnb_cost = 1.0;
+        if (quantType === "bnb_int8") {
+            setShowTableComputeDisclaimer(
+                "Disclaimer: bitsandbytes llm.int8 quant is NOT optimized for time. It takes more time than float16"
+            );
+            bnb_cost = 3.0;
+        }
+        if (quantType === "bnb_q4") {
+            setShowTableComputeDisclaimer(
+                "Disclaimer: https://github.com/TimDettmers/bitsandbytes/releases/tag/0.41.0 says that int4/qlora is 2-4x faster but I haven't been able to reproduce this. Other people have raised similar issues. "
+            );
+            bnb_cost = 2.75;
+        }
+        if (quantType === "qlora") {
+            setShowTableComputeDisclaimer(
+                "Disclaimer: https://github.com/TimDettmers/bitsandbytes/releases/tag/0.41.0 says that int4/qlora is 2-4x faster but I haven't been able to reproduce this. Other people have raised similar issues. "
+            );
+            bnb_cost = 1.75;
+        }
+
+        let parsedConfig = getParseConfig(
+            parsedJSONData,
+            setErrorMessage,
+            openModal
+        );
+        const numLayers = parsedConfig["num_layers"],
+            hiddenDim = parsedConfig["hiddenDim"];
+
+        const memoryTransfer = computeModelSize(parsedConfig);
+
+        let totalFlopsToken =
+            2 * batchSize * totalLen * memoryTransfer +
+            totalLen * hiddenDim * 2 * numLayers * batchSize;
+
+        // console.log(batchSize, totalLen, memoryTransfer);
+        // console.log(
+        //     "other: ",
+        //     totalLen * hiddenDim * 2 * numLayers * batchSize
+        // );
+
+        // console.log(
+        //     2 * memoryTransfer,
+        //     totalLen * hiddenDim * 2 * numLayers * 2
+        // );
+
+        let extraGradChoice = 1.0;
+        if (selections.dropdownOpt === "adam_opt") {
+            extraGradChoice = 1.15;
+        }
+
+        console.log("tot flops: ", totalFlopsToken);
+
+        totalFlopsToken = totalFlopsToken * 2; //! Backward pass *2
+        totalFlopsToken = totalFlopsToken * extraGradChoice;
+
+        totalFlopsToken = totalFlopsToken * bnb_cost; //! Cost due to bnb
+
+        if (selections.dropdownFullOrNot === "full_trn") {
+            //! In total training, we will have to move the weights back to GPU for update, so its 2x more + update all so 1.5x (approx) more. Total 3x
+            totalFlopsToken = totalFlopsToken * 3; //! I don't have capcacity to check this
+        }
+
+        let timeIfFlops_in_ms =
+            (totalFlopsToken * 1000) / (tera * gpu_compute * 0.85);
+        let memoryOrCompute = "compute";
+        const jsonComputeReturnData = {
+            "ms per iteration(forward + backward)":
+                timeIfFlops_in_ms.toFixed(2),
+            "memory or compute bound?": memoryOrCompute,
+        };
+
+        // console.log(jsonComputeReturnData);
+
+        setJsonDataCompute(jsonComputeReturnData);
+        setShowTableCompute(true);
+    }
+
     function token_per_second_logic_GPU(
         gpuDataOnlyNum,
         parsedJSONData,
@@ -1335,11 +1513,41 @@ function App() {
 
         const trnType = selections.dropdownTrnOrNot;
         const quantType = selections.dropdownQuant;
+        const totalLen = parseInt(promptLen) + parseInt(contextLen);
 
         let extraFactor = 1.0;
 
         if (trnType === "inf") {
             extraFactor = 2.0;
+        }
+        if (trnType === "inf_ggml") {
+            extraFactor = 1.5;
+            if (quantType === "ggml_Q2_K") {
+                extraFactor = 2.0;
+            }
+        }
+
+        if ((trnType === "inf") & (selections.dropdownFullOrNot === "qlora")) {
+            setErrorMessage(
+                "afaik qlora trained model's inference is just 4 bit inference, i.e. bnb int4/nf4. You can select that option from quant to calculate this"
+            );
+            openModal();
+            return;
+        }
+
+        setShowTableComputeDisclaimer("");
+        let bnb_cost = 1.0;
+        if (trnType === "inf" && quantType === "bnb_int8") {
+            setShowTableComputeDisclaimer(
+                "Disclaimer: bitsandbytes llm.int8 quant is NOT optimized for inference. It takes more than time than float16."
+            );
+            bnb_cost = 4.5;
+        }
+        if (trnType === "inf" && quantType === "bnb_q4") {
+            setShowTableComputeDisclaimer(
+                "Disclaimer: https://github.com/TimDettmers/bitsandbytes/releases/tag/0.41.0 says that int4 is 2-4x faster but I haven't been able to reproduce this. Other people have raised similar issues in the repo."
+            );
+            bnb_cost = 3.0;
         }
 
         let parsedConfig = getParseConfig(
@@ -1350,7 +1558,23 @@ function App() {
         const numLayers = parsedConfig["num_layers"],
             hiddenDim = parsedConfig["hiddenDim"];
 
-        const memoryTransfer = computeModelSize(parsedConfig);
+        let memoryTransfer = 0;
+        if (ggml_quants.includes(quantType)) {
+            memoryTransfer =
+                (computeModelSizeGGML(parsedConfig, quantType) * 1024 * 1024) /
+                2.0;
+        } else {
+            if (quantType === "no_quant") {
+                memoryTransfer = computeModelSize(parsedConfig);
+            } else {
+                if (quantType === "bnb_int8") {
+                    memoryTransfer = computeModelSize(parsedConfig) / 2.0;
+                }
+                if (quantType === "bnb_q4") {
+                    memoryTransfer = computeModelSize(parsedConfig) / 4.0;
+                }
+            }
+        }
 
         //! Prompt Time Calculation
         //Time to process prompt (depending on contextLen this is either compute bound or memory bound)
@@ -1360,17 +1584,26 @@ function App() {
             2 * promptLen * memoryTransfer +
             2 * numLayers * hiddenDim * hiddenDim * 2 * promptLen;
         theoryTimePrompt = batchSize * theoryTimePrompt;
-        let theoryTimePrompt_in_ms = theoryTimePrompt / (tera * gpu_compute);
+        let theoryTimePrompt_in_ms =
+            theoryTimePrompt / (tera * gpu_compute * 0.85);
 
         let finalPromptTime =
             theoryTimePrompt_in_ms * getFloatRatio_F16(quantType) * 1.8 +
-            convertByteToMB(memoryTransfer) * (0.008 / 100);
+            convertByteToMB(2 * memoryTransfer) * (0.008 / 100);
 
         // const totalFlopsInB = 2*batchSize*modelSizeinB*billion + getTotalFlopsForKV(parsedConfig, batchSize, contextLen);
 
         //! Per token Time calculation
         const utilizationRate = 1.0;
-        const kv_cache_memory = 2 * 2 * numLayers * hiddenDim * contextLen;
+        const kv_cache_memory = 2 * 2 * numLayers * hiddenDim * totalLen;
+
+        // console.log(
+        //     "memory GPU side: ",
+        //     convertByteToMB(memoryTransfer),
+        //     memoryTransfer
+        // );
+
+        //1326940160*2
 
         let timeIfMemory =
             convertByteToGB(
@@ -1381,9 +1614,16 @@ function App() {
 
         //! Check if it is compute bound
         let totalFlopsToken =
-            2 * memoryTransfer + 2 * numLayers * hiddenDim * hiddenDim * 2;
+            2 * memoryTransfer + totalLen * hiddenDim * 2 * numLayers * 2 * 2;
+
+        // console.log(
+        //     2 * memoryTransfer,
+        //     totalLen * hiddenDim * 2 * numLayers * 2
+        // );
+
         totalFlopsToken = batchSize * totalFlopsToken;
-        let timeIfFlops_in_ms = (totalFlopsToken * 1000) / (tera * gpu_compute);
+        let timeIfFlops_in_ms =
+            (totalFlopsToken * 1000) / (tera * gpu_compute * 0.85);
 
         let finalTimeToConsider = null;
         let memoryOrCompute = null;
@@ -1405,6 +1645,9 @@ function App() {
         if (numGPU > 1) {
             finalTimeToConsider = (finalTimeToConsider * 1.25) / numGPU;
         }
+
+        finalTimeToConsider = finalTimeToConsider * bnb_cost;
+        finalPromptTime = finalPromptTime * bnb_cost;
 
         let token_per_s = 1000 / finalTimeToConsider; //finalTimeToConsider is time in ms for each token. So divide by 1000
 
@@ -1435,6 +1678,35 @@ function App() {
         setShowTableCPU(true);
     }
 
+    function sanityChecks() {
+        
+
+        if (!isValidPositiveInteger(batchSize)) {
+            setErrorMessage(
+                "Batch size cant have non numeric or negative/zero values"
+            );
+            openModal();
+            return false;
+        }
+
+        let check1 = checkCombinationInferenceTok(
+            selections.dropdownTrnOrNot,
+            selections.dropdownQuant,
+            setErrorMessage,
+            openModal
+        );
+
+
+        let check2 = checkCombinationTrainInference(
+            selections.dropdownQuant,
+            setErrorMessage,
+            openModal,
+            selections.dropdownFullOrNot
+        );
+
+        return check1 && check2;
+    }
+
     function handleClickTokS() {
         // setErrorMessage("To be added");
         // openModal();
@@ -1449,9 +1721,13 @@ function App() {
             return;
         }
 
+        if (!sanityChecks()) {
+            return;
+        }
+
         if (
             selections.isGPUorCPU === "usingCPU" &&
-            selections.trnType != "inf_ggml"
+            selections.dropdownTrnOrNot != "inf_ggml"
         ) {
             setErrorMessage(
                 "Inference with CPU only makes applicable(sensible) for GGML"
@@ -1460,7 +1736,7 @@ function App() {
             return;
         }
 
-        if (selections.trnType != "inf_vLLM") {
+        if (selections.dropdownTrnOrNot === "inf_vLLM") {
             setErrorMessage(
                 "Still working on adding vLLM. For now, as a rule of thumb, vLLM is 2-3x faster (than HF) when serving requests at your GPUs capacity"
             );
@@ -1468,17 +1744,25 @@ function App() {
             return;
         }
 
-        if (selections.trnType === "trn") {
-            setErrorMessage(
-                "Token/s doesn't make sense for training, as whole sequence is generated at once. But how much time will one forward/backward pass take makese sense. I haven't added that yet."
-            );
+        // if (selections.dropdownTrnOrNot === "trn") {
+        //     setErrorMessage(
+        //         "Token/s doesn't make sense for training, as whole sequence is generated at once. But how much time will one forward/backward pass take makese sense. I haven't added that yet."
+        //     );
+        //     openModal();
+        //     return;
+        // }
+        if (
+            selections.dropdownTrnOrNot === "trn" &&
+            selections.isGPUorCPU === "usingCPU"
+        ) {
+            setErrorMessage("You can't train using HuggingFace on CPU");
             openModal();
             return;
         }
 
-        console.log(gpuJSONData);
-        console.log(cpuJSONData);
-        console.log(selections.dropdownGPU);
+        // console.log(gpuJSONData);
+        // console.log(cpuJSONData);
+        // console.log(selections.dropdownGPU);
 
         const gpuDataOnlyNum = gpuJSONData[selections.dropdownGPU];
         const cpuDataOnlyNum = cpuJSONData[selections.dropdownCPU];
@@ -1493,7 +1777,26 @@ function App() {
             return;
         }
 
+
+        if (selections.dropdownTrnOrNot === "trn") {
+            token_per_second_logic_Train(
+                gpuDataOnlyNum,
+                parsedConfig,
+                promptLen,
+                contextLen,
+                batchSize,
+                setErrorMessage,
+                openModal
+            );
+            setCompReqHardwareName(selections.dropdownGPU);
+            setShowTableComputeSmallInfo(2);
+            setCompReqHardwareNameBefore("Time for training: ");
+            return;
+        }
+
         if (selections.isGPUorCPU === "usingGPU") {
+            //! If I have bnb4 or bnb8 selected then put a disclaimer that it doesn't work
+
             token_per_second_logic_GPU(
                 gpuDataOnlyNum,
                 parsedConfig,
@@ -1504,6 +1807,8 @@ function App() {
                 openModal
             );
             setCompReqHardwareName(selections.dropdownGPU);
+            setShowTableComputeSmallInfo(1);
+            setCompReqHardwareNameBefore("Tokens/s stats for: ");
         } else {
             token_per_second_logic_CPU(
                 cpuDataOnlyNum,
@@ -1515,6 +1820,8 @@ function App() {
                 openModal
             );
             setCompReqHardwareName(selections.dropdownCPU);
+            setShowTableComputeSmallInfo(1);
+            setCompReqHardwareNameBefore("Tokens/s stats for: ");
         }
         return;
     }
@@ -1577,7 +1884,6 @@ function App() {
         // const jsonOut = JSON.stringify(out);
         // setBreakDownMemory(`Breakdown(in MB): ${jsonOut}`);
         setTotalMemoryShown(out["Total"]);
-        console.log(out);
 
         setShowTable(true);
 
@@ -1617,7 +1923,7 @@ function App() {
     useEffect(() => {
         // Your function here to populate myVariable
         const fetchData = async () => {
-            console.log("calling!");
+
             // Fetch data or perform some other operation
             let response = await fetch(configPath);
             response = await response.json();
@@ -1630,7 +1936,7 @@ function App() {
 
     useEffect(() => {
         if (modelName && responseCacheKeys) {
-            if (modelName.length > 2) {
+            if (modelName.length > 1) {
                 const filtered = responseCacheKeys.filter((item) =>
                     item.startsWith(modelName)
                 );
@@ -1702,7 +2008,7 @@ function App() {
                         <span className="text-2xl hover:text-3xl">🫵🤨</span>
                     </div>
                     <div className="text-center text-l font-poppins pb-1">
-                        Calculate GPU memory and token/s for a particular LLM
+                        Calculate GPU memory and token/s for any LLM
                     </div>
                     <div className="flex pb-1 content-center justify-center">
                         <img
@@ -1719,7 +2025,8 @@ function App() {
                             style={{ width: "75px", height: "75px" }}
                         />
                     </div>
-                    <div className="flex flex-row">
+                    <hr className="bg-gray-300"></hr>
+                    <div className="flex flex-row mt-1">
                         <div>
                             <div className="border border-gray-400 p-3 rounded-lg inline-block hover:border-black">
                                 <label className="text-sm font-poppins pr-4">
@@ -1742,9 +2049,7 @@ function App() {
                                                 onClick={() => {
                                                     setModelName(item);
                                                     setShowSuggestions(false);
-                                                    console.log(
-                                                        showSuggestions
-                                                    );
+                                                    
                                                 }}
                                                 className={`p-2 ${
                                                     selectedIdx === index
@@ -1968,9 +2273,14 @@ function App() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex flex-col border border-gray-400 p-3 rounded-lg mt-2 hover:border-black">
-                                <div>
-                                    <label className="font-poppins font-extrabold text-base pr-2">
+                            <div className="flex flex-col border border-gray-400 p-2 rounded-lg mt-2 hover:border-black">
+                            <div>
+                            <label className="font-poppins font-bold text-sm pr-2">
+                                        For Inference ⏱️
+                                    </label>
+                            </div>
+                                <div className="pt-1">
+                                    <label className="font-poppins font-extrabold text-sm pr-2">
                                         GPU or CPU?
                                     </label>
                                     <select
@@ -1981,9 +2291,12 @@ function App() {
                                         <option value="usingGPU">GPU</option>
                                         <option value="usingCPU">CPU</option>
                                     </select>
+                                    <label className="font-sans text-sm pl-2">
+                                        
+                                    </label>
                                 </div>
                                 {selections.isGPUorCPU === "usingGPU" && (
-                                    <div className="flex pt-3 flex-row">
+                                    <div className="flex pt-2 flex-row">
                                         <div>
                                             <label className="font-poppins font-semibold text-sm pr-2">
                                                 GPU
@@ -2011,7 +2324,7 @@ function App() {
                                                 <option value="rtx-4090">
                                                     RTX 4090
                                                 </option>
-                                                <option value="P-100">
+                                                <option value="P-100 (12 GB)">
                                                     P 100
                                                 </option>
                                                 <option value="A-4000">
@@ -2061,9 +2374,30 @@ function App() {
                                                 <option value="7950x">
                                                     AMD 7950x
                                                 </option>
+                                                <option value="12700H">
+                                                    i7-12700H
+                                                </option>
+                                                <option value="13900K">
+                                                    i9-13900K
+                                                </option>
+                                                <option value="13700K">
+                                                    i7-13700K
+                                                </option>
+                                                <option value="9900K">
+                                                    i9 9900K
+                                                </option>
+                                                <option value="5900X">
+                                                    AMD 5900X
+                                                </option>
+                                                <option value="5600X">
+                                                    AMD 5600X
+                                                </option>
+                                                <option value="3990X">
+                                                    AMD 3990X
+                                                </option>
                                             </select>
                                         </div>
-                                        <div className="pl-5">
+                                        {/* <div className="pl-5">
                                             <label className="font-poppins text-sm pr-2 hover:cursor-not-allowed">
                                                 Layers to offload?{" "}
                                                 <span className="text-red-800">
@@ -2077,6 +2411,27 @@ function App() {
                                                 placeholder="1"
                                                 disableStatus={true}
                                             />
+                                        </div> */}
+                                        <div className="pl-5">
+                                            <label className="font-poppins text-sm pr-2">
+                                                RAM?{" "}
+                                            </label>
+                                            <select
+                                                className="font-poppins text-sm border border-gray-500"
+                                                name="dropdownDDR"
+                                                onChange={handleChangeSelection}
+                                            >
+                                                {showDDR[0] === 1 && (
+                                                    <option value="ddr4">
+                                                        DDR4
+                                                    </option>
+                                                )}
+                                                {showDDR[1] === 1 && (
+                                                    <option value="ddr5">
+                                                        DDR5
+                                                    </option>
+                                                )}
+                                            </select>
                                         </div>
                                         <div>
                                             <button
@@ -2178,7 +2533,7 @@ function App() {
                                 <>
                                     <div className="text-sm font-poppins font-bold">
                                         Memory Requirement for:{" "}
-                                        {memReqHardwareName}
+                                        {/* {memReqHardwareName} */}
                                     </div>
                                     <table className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
                                         <tbody>
@@ -2235,7 +2590,7 @@ function App() {
                                             })}
                                             <tr className="bg-gray-200">
                                                 <td className="py-1 px-2 text-sm border">
-                                                    GPUs needed
+                                                    selected GPUs needed
                                                 </td>
                                                 <td className="py-1 px-2 text-sm border">
                                                     {numGPUINeed}
@@ -2258,7 +2613,7 @@ function App() {
                             {showTableCompute && (
                                 <div>
                                     <div className="text-sm font-poppins font-bold">
-                                        Tokens/s stats for:{" "}
+                                        {compReqHardwareNameBefore}
                                         {compReqHardwareName}
                                     </div>
                                     {/* {selections.isGPUorCPU==='usingGPU' ? selections.dropdownGPU : selections.dropdownCPU} */}
@@ -2292,11 +2647,24 @@ function App() {
                                             })}
                                         </tbody>
                                     </table>
-                                    <div className="text-xs font-poppins text-red-700">
-                                        Check above to see how{" "}
-                                        {computedTokenPerSecond} token/s looks
-                                        like
+                                    <div className="text-xs whitespace-normal overflow-hidden max-w-xl font-poppins text-red-500">
+                                        {showTableComputeDisclaimer}
                                     </div>
+                                    {showTableComputeSmallInfo == 1 && (
+                                        <div className="text-xs font-poppins text-blue-700">
+                                            Check above to see how{" "}
+                                            {computedTokenPerSecond} token/s
+                                            looks like
+                                        </div>
+                                    )}
+                                    {showTableComputeSmallInfo == 2 && (
+                                        <div className="text-xs font-poppins text-blue-700">
+                                            For train, generate length = 1.
+                                            Since training is next token pred.
+                                            e.g. if u train on 500 len sequence
+                                            then put 500 in prompt len.
+                                        </div>
+                                    )}
                                 </div>
                             )}
                             {/* <button
@@ -2428,13 +2796,13 @@ function App() {
                                 +-15% depending on your CPU, GPU, cuda version,
                                 llama.cpp version, model etc.
                             </li>
-                            <li>
+                            {/* <li>
                                 For training, the total context length will be
                                 prompt Len + Generate Len. The correct (ideal)
                                 use case is to set generate = 1 for training,
                                 since all training is next token prediction
                                 loss.
-                            </li>
+                            </li> */}
                             <li>
                                 CPU inference is only compatible with GGML. You
                                 can't use CPU with HF/vLLM

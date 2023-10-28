@@ -5,6 +5,8 @@
  "rtx-3060": {"bandwidth": 360, "compute": 13.0, "memory": 12},
  "rtx-2060": {"bandwidth": 336, "compute": 13.0, "memory": 6},
  "rtx-2070": {"bandwidth": 448, "compute": 15.0, "memory": 8},
- "A-6000": {"bandwidth": 768, "compute": 28000, "memory": 48},
- "A-4000": {"bandwidth": 768, "compute": 28000, "memory": 48},
- "P-100": {"bandwidth": 1000, "compute": 28000, "memory": 24}}
+ "A-6000": {"bandwidth": 768, "compute": 38.71, "memory": 48},
+ "A-4000": {"bandwidth": 768, "compute": 19.17, "memory": 16},
+ "P-100": {"bandwidth": 1000, "compute": 19.05, "memory": 12},
+ "P-40": {"bandwidth": 364, "compute": 11.76, "memory": 24}
+}

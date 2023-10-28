@@ -1,16 +1,92 @@
 {
-    "3600x" : {
-        "Speed" :  3200,
-        "Bus" : "Dual",
-        "Cores" : 6,
-        "Memory" : "DDR4",
-        "Flops" : 297.5 
+    "3600x": {
+        "Speed": 0.0,
+        "Bus": "Dual",
+        "Cores": 6,
+        "ddr5": 0,
+        "ddr4": 1,
+        "speed_ddr4": 3200,
+        "Memory": "DDR4",
+        "Flops": 432
     },
-    "7950x" : {
-        "Speed" :  5200,
-        "Bus" : "Dual",
-        "Cores" : 16,
-        "Memory" : "DDR5",
-        "Flops" : 970.0
+    "7950x": {
+        "Speed": 5200,
+        "Bus": "Dual",
+        "ddr4": 0,
+        "ddr5": 1,
+        "speed_ddr4": 0.0,
+        "Cores": 16,
+        "Memory": "DDR5",
+        "Flops": 970.0
+    },
+    "12700H": {
+        "Speed": 4800,
+        "Bus": "Dual",
+        "ddr4": 1,
+        "ddr5": 1,
+        "speed_ddr4": 3200.0,
+        "Cores": 14,
+        "Memory": "DDR5",
+        "Flops": 2000.0
+    },
+    "13900K": {
+        "Speed": 5600,
+        "Bus": "Dual",
+        "Cores": 24,
+        "ddr4": 1,
+        "ddr5": 1,
+        "speed_ddr4": 3200.0,
+        "Memory": "DDR5",
+        "Flops": 2000.0
+    },
+    "13700K": {
+        "Speed": 5600,
+        "Bus": "Dual",
+        "ddr4": 1,
+        "ddr5": 1,
+        "speed_ddr4": 3200.0,
+        "Cores": 16,
+        "Memory": "DDR5",
+        "Flops": 2000.0
+    },
+    "9900K": {
+        "Speed": 0.0,
+        "Bus": "Dual",
+        "ddr4": 1,
+        "ddr5": 0,
+        "speed_ddr4": 2666,
+        "Cores": 8,
+        "Memory": "DDR5",
+        "Flops": 2000.0
+    },
+    "5900X" : {
+        "Speed": 0.0,
+        "Bus": "Dual",
+        "ddr4": 1,
+        "ddr5": 0,
+        "speed_ddr4": 3200,
+        "Cores": 12,
+        "Memory": "DDR5",
+        "Flops": 2000.0
+    },
+    "5600X" : {
+        "Speed": 0.0,
+        "Bus": "Dual",
+        "ddr4": 1,
+        "ddr5": 0,
+        "speed_ddr4": 3200,
+        "Cores": 12,
+        "Memory": "DDR5",
+        "Flops": 2000.0
+    },
+    "3990X" : {
+        "Speed": 0.0,
+        "Bus": "Quad",
+        "ddr4": 1,
+        "ddr5": 0,
+        "speed_ddr4": 3200,
+        "Cores": 64,
+        "Memory": "DDR5",
+        "Flops": 2000.0
     }
 }
