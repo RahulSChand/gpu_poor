@@ -1,8 +1,8 @@
-# Can my GPU run this LLM?
+# Can my GPU run this LLM? & what token/s can I get?
 
 ![Made with](https://img.shields.io/badge/logo-javascript-blue?logo=javascript)
 
-Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bitsandbytes), inference frameworks (vLLM/llama.cpp/HF) & QLoRA. 
+Calculate how much **GPU memory you need** and how much **token/s you can get** on your GPU or CPU &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bitsandbytes), inference frameworks (vLLM/llama.cpp/HF) & QLoRA. 
 
 Link: **https://rahulschand.github.io/gpu_poor/**
 
@@ -13,17 +13,12 @@ Link: **https://rahulschand.github.io/gpu_poor/**
 
 ---
 
-#### Additions
+## Features
 
-1. Added autocomplete for ease of use
+1. Calculate vRAM memory requirement
+2. Calculate ~token/s you can get
 
-![new_autocomplete_3](https://github.com/RahulSChand/gpu_poor/assets/16897807/01a3ff57-c354-4e76-afb0-be0192a0ba6f)
 
-
-2. Updated config list with new Huggingface trending models (Llava/Mistral/Trismegistus etc.)
-
-3. Fixed bitsandbytes quantization overhead calculation (before it was linear in terms of context length, fixed it to be more accurate)
----
 
 ### Purpose
 
@@ -94,6 +89,19 @@ The results can vary depending on your model, input data, cuda version & what qu
 ### Why are the results wrong?
 Sometimes the answers might be very wrong in which case please open an issue here & I will try to fix it.
 
+---
+
+
+#### Additions
+
+1. Added autocomplete for ease of use
+
+![new_autocomplete_3](https://github.com/RahulSChand/gpu_poor/assets/16897807/01a3ff57-c354-4e76-afb0-be0192a0ba6f)
+
+
+2. Updated config list with new Huggingface trending models (Llava/Mistral/Trismegistus etc.)
+
+3. Fixed bitsandbytes quantization overhead calculation (before it was linear in terms of context length, fixed it to be more accurate)
 ---
 
 ### TODO
