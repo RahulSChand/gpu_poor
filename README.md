@@ -1,8 +1,8 @@
-# Can my GPU run this LLM?
+# Can my GPU run this LLM? & what token/s can I get?
 
 ![Made with](https://img.shields.io/badge/logo-javascript-blue?logo=javascript)
 
-Calculate how much GPU memory you need &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bitsandbytes), inference frameworks (vLLM/llama.cpp/HF) & QLoRA. 
+Calculate how much GPU memory you need and how much token/s you can get on your GPU &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bitsandbytes), inference frameworks (vLLM/llama.cpp/HF) & QLoRA. 
 
 Link: **https://rahulschand.github.io/gpu_poor/**
 
