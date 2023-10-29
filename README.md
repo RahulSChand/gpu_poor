@@ -9,18 +9,21 @@ Link: **https://rahulschand.github.io/gpu_poor/**
 
 ![new_upload](https://github.com/RahulSChand/gpu_poor/assets/16897807/14250f55-e886-4cc6-9aeb-08532382860c)
 
----
+
 
 ## Features
 
-1. Calculate vRAM memory requirement
+#### 1. Calculate vRAM memory requirement
 
 <img width="643" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/29577394-0efd-42fb-aaf4-282e9a45d5db">
 
-2. Calculate ~token/s you can get
+#### 2. Calculate ~token/s you can get
 
 <img width="647" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/77627c9b-5fdd-44cf-8b7d-452ff0563a8a">
 
+#### 3. Approximate time for finetuning (ms per iteration)
+
+<img width="764" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/e5fd08a1-abb9-4e00-ad45-ba9bb15ec546">
 
 
 ### Purpose
