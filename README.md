@@ -1,4 +1,4 @@
-# Can my GPU run this LLM? & what token/s can I get?
+# Can my GPU run this LLM? & at what token/s?
 
 ![Made with](https://img.shields.io/badge/logo-javascript-blue?logo=javascript)
 
@@ -11,33 +11,23 @@ Link: **https://rahulschand.github.io/gpu_poor/**
 
 
 
-## Features
+## Use case/Features
 
-#### 1. Calculate vRAM memory requirement
+#### 1. Calculate vRAM memory requirement 💾
 
 <img width="643" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/29577394-0efd-42fb-aaf4-282e9a45d5db">
 
-#### 2. Calculate ~token/s you can get
+#### 2. Calculate ~token/s you can get ⏱️
 
 <img width="647" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/77627c9b-5fdd-44cf-8b7d-452ff0563a8a">
 
-#### 3. Approximate time for finetuning (ms per iteration)
+#### 3. Approximate time for finetuning (ms per iteration) ⌛️
 
 <img width="764" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/e5fd08a1-abb9-4e00-ad45-ba9bb15ec546">
 
 
-### Purpose
 
-I made this to check if you can run a particular LLM on your GPU. Useful to figure out the following
-
-1. What quantization will fit on my GPU?
-2. Max context length & batch-size my GPU can handle?
-3. Which finetuning? Full? LoRA? QLoRA?
-5. What is consuming my GPU memory? What to change to fit the LLM on GPU?
-
-
-
-The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It looks like below
+For memory, output is total vRAM & its breakdown. It looks like below
 
 ```     
 {
@@ -50,7 +40,31 @@ The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It 
 }
 ```
 
+
+For token/s, output is token/s & additional info, looks like below
+
+```     
+{
+  "Token per second": 50,
+  "ms per token": 20,
+  "Prompt process time (s)": 5 s,
+  "memory or compute bound?": Memory,
+}
+```
+
 ---
+
+
+### Purpose
+
+I made this to check if you can run a particular LLM on your GPU. Useful to figure out the following
+
+1. What quantization will fit on my GPU?
+2. Max context length & batch-size my GPU can handle?
+3. Which finetuning? Full? LoRA? QLoRA?
+5. What is consuming my GPU memory? What to change to fit the LLM on GPU?
+
+
 
 ### Can't we just look at the model size & figure this out?
 
@@ -110,11 +124,13 @@ Sometimes the answers might be very wrong in which case please open an issue her
 2. Updated config list with new Huggingface trending models (Llava/Mistral/Trismegistus etc.)
 
 3. Fixed bitsandbytes quantization overhead calculation (before it was linear in terms of context length, fixed it to be more accurate)
+
+4. **Added token/s**
 ---
 
 ### TODO
 1. Add support for exLlama
 2. ~Add QLora~ ✅
-3. Add way to measure approximste tokens/s you can get for a particular GPU
+3. ~Add way to measure approximste tokens/s you can get for a particular GPU~ ✅
 4. ~Improve logic to get hyper-params from size~ (since hidden layer/intermediate size/number of layers can vary for a particular size) ✅
 5. Add AWQ
