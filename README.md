@@ -14,18 +14,25 @@ Link: **https://rahulschand.github.io/gpu_poor/**
 ## Features
 
 1. Calculate vRAM memory requirement
+
+<img width="643" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/29577394-0efd-42fb-aaf4-282e9a45d5db">
+
 2. Calculate ~token/s you can get
+
+<img width="647" alt="image" src="https://github.com/RahulSChand/gpu_poor/assets/16897807/77627c9b-5fdd-44cf-8b7d-452ff0563a8a">
 
 
 
 ### Purpose
 
 I made this to check if you can run a particular LLM on your GPU. Useful to figure out the following
-1. What quantization I should use to fit any model on my GPU?
-2. What max context length my GPU can handle?
-3. What kind of finetuning can I do? Full? LoRA? QLoRA?
-4. What max batch size I can use during finetuning?
-5. What is consuming my GPU memory? What should I change to fit the LLM on my GPU?
+
+1. What quantization will fit on my GPU?
+2. Max context length & batch-size my GPU can handle?
+3. Which finetuning? Full? LoRA? QLoRA?
+5. What is consuming my GPU memory? What to change to fit the LLM on GPU?
+
+
 
 The output is the total vRAM & the breakdown of where the vRAM goes (in MB). It looks like below
 
