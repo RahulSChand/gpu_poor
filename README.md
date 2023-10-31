@@ -6,12 +6,14 @@ Calculate how much **GPU memory you need** and how much **token/s you can get** 
 
 Link: **https://rahulschand.github.io/gpu_poor/**
 
+### Demo
 
 ![new_upload](https://github.com/RahulSChand/gpu_poor/assets/16897807/14250f55-e886-4cc6-9aeb-08532382860c)
 
 
+---
 
-## Use case/Features
+## Use cases/Features
 
 #### 1. Calculate vRAM memory requirement 💾
 
