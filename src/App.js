@@ -2008,7 +2008,7 @@ function App() {
                         <span className="text-2xl hover:text-3xl">🫵🤨</span>
                     </div>
                     <div className="text-center text-l font-poppins pb-1">
-                        Calculate GPU memory and token/s for any LLM
+                        Calculate GPU memory requirement and token/s for any LLM
                     </div>
                     <div className="flex pb-1 content-center justify-center">
                         <img
