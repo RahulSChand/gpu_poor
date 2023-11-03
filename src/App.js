@@ -261,7 +261,6 @@ function getGradOptMemory(
     }
 
     if (full === "lora_trn" && opt === "adam_opt" && quant === "bnb_int8") {
-        
         return (
             parsedConfig.num_layers * 8 * parsedConfig.hiddenDim * 2 * 4 * 3 +
             getExtraMemory(parsedConfig, quant, contextLen) * batchSize
@@ -507,7 +506,6 @@ function checkCombinationInferenceTok(
         openModal();
         return false;
     }
-
 
     return true;
 }
@@ -1060,9 +1058,10 @@ function App() {
     const [showTableComputeSmallInfo, setShowTableComputeSmallInfo] =
         useState(0);
 
+    const [showTrainLenInfo, setShowTrainLenInfo] = useState(true);
+
     const gpuTableRef = React.useRef(null);
     const cpuTableRef = React.useRef(null);
-
 
     const [faqOpen, setFaqOpen] = useState(false);
 
@@ -1201,6 +1200,15 @@ function App() {
         }
     }
 
+    function setTrainPromptLenInfoMessage(value){
+        if (value === 'trn'){
+            setShowTrainLenInfo(true);
+        }
+        else{
+            setShowTrainLenInfo(false);
+        }
+    }
+
     const handleChangeSelection = (e) => {
         const { name, value } = e.target;
         setSelections((prevState) => ({
@@ -1210,6 +1218,9 @@ function App() {
 
         if (name === "dropdownCPU") {
             setDDROptions(value);
+        }
+        if (name === "dropdownTrnOrNot"){
+            setTrainPromptLenInfoMessage(value);
         }
     };
 
@@ -1279,10 +1290,9 @@ function App() {
         // console.log("speeds: ",speed, speed_ddr4, selections.dropdownDDR);
 
         let useThiSpeed = 0;
-        if (selections.dropdownDDR==='ddr4'){
+        if (selections.dropdownDDR === "ddr4") {
             useThiSpeed = speed_ddr4;
-        }
-        else{
+        } else {
             useThiSpeed = speed;
         }
 
@@ -1313,7 +1323,6 @@ function App() {
         setErrorMessage,
         openModal
     ) {
-        
         const speed = cpuDataOnlyNum["Speed"];
         const speed_ddr4 = cpuDataOnlyNum["speed_ddr4"];
 
@@ -1321,7 +1330,12 @@ function App() {
         const memory = cpuDataOnlyNum["Memory"];
         const cpu_compute = cpuDataOnlyNum["Flops"] * 0.5;
 
-        const cpu_bandwidth = getCPUSpeedFromSpecs(speed, speed_ddr4, bus, memory);
+        const cpu_bandwidth = getCPUSpeedFromSpecs(
+            speed,
+            speed_ddr4,
+            bus,
+            memory
+        );
 
         const quantType = selections.dropdownQuant;
 
@@ -1338,8 +1352,6 @@ function App() {
         if (quantType === "no_quant") {
             memoryTransfer = computeModelSize(parsedConfig);
         }
-
-        
 
         const extraFactorCPU = 1.6;
         //! Prompt Time Calculation
@@ -1695,29 +1707,24 @@ function App() {
     function showGPUSpecs() {
         const gpuDataOnlyNum = gpuJSONData[selections.dropdownGPU];
         setGPUJSONDataForTable(enchanceGPUJSONData(gpuDataOnlyNum));
-        
+
         setShowTableGPU(true);
-        if (gpuTableRef.current){
-            gpuTableRef.current.scrollIntoView({ behavior: 'smooth' });
+        if (gpuTableRef.current) {
+            gpuTableRef.current.scrollIntoView({ behavior: "smooth" });
         }
-        
     }
 
     function showCPUSpecs() {
         const cpuDataOnlyNum = cpuJSONData[selections.dropdownCPU];
         setCPUJSONDataForTable(enchanceCPUJSONData(cpuDataOnlyNum));
         setShowTableCPU(true);
-        
-        if (cpuTableRef.current){
-            cpuTableRef.current.scrollIntoView({ behavior: 'smooth' });
+
+        if (cpuTableRef.current) {
+            cpuTableRef.current.scrollIntoView({ behavior: "smooth" });
         }
-        
-        
     }
 
     function sanityChecks() {
-        
-
         if (!isValidPositiveInteger(batchSize)) {
             setErrorMessage(
                 "Batch size cant have non numeric or negative/zero values"
@@ -1732,7 +1739,6 @@ function App() {
             setErrorMessage,
             openModal
         );
-
 
         let check2 = checkCombinationTrainInferenceTok(
             selections.dropdownQuant,
@@ -1813,7 +1819,6 @@ function App() {
             openModal();
             return;
         }
-
 
         if (selections.dropdownTrnOrNot === "trn") {
             token_per_second_logic_Train(
@@ -1960,7 +1965,6 @@ function App() {
     useEffect(() => {
         // Your function here to populate myVariable
         const fetchData = async () => {
-
             // Fetch data or perform some other operation
             let response = await fetch(configPath);
             response = await response.json();
@@ -2086,7 +2090,6 @@ function App() {
                                                 onClick={() => {
                                                     setModelName(item);
                                                     setShowSuggestions(false);
-                                                    
                                                 }}
                                                 className={`p-2 ${
                                                     selectedIdx === index
@@ -2147,8 +2150,8 @@ function App() {
 
                             <br></br>
                             <div className="border border-gray-400 p-2 rounded-lg inline-block hover:border-black mt-2">
-                                <div className="pb-2">
-                                    <label className="font-poppins text-sm pr-4">
+                                <div className="pb-2 flex flex-row">
+                                    <label className="font-poppins text-sm pr-3">
                                         Train or Inference?
                                     </label>
                                     <select
@@ -2172,6 +2175,13 @@ function App() {
                                             Training (Huggingface)
                                         </option>
                                     </select>
+
+                                    {showTrainLenInfo && (
+                                        <div className="text-xs ml-2 text-blue-700">
+                                            For training, set tokens to generate as
+                                            1
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex pb-2 pt-1">
@@ -2311,11 +2321,11 @@ function App() {
                                 </div>
                             </div>
                             <div className="flex flex-col border border-gray-400 p-2 rounded-lg mt-2 hover:border-black">
-                            <div>
-                            <label className="font-poppins font-bold text-sm pr-2">
+                                <div>
+                                    <label className="font-poppins font-bold text-sm pr-2">
                                         For Inference ⏱️
                                     </label>
-                            </div>
+                                </div>
                                 <div className="pt-1">
                                     <label className="font-poppins font-extrabold text-sm pr-2">
                                         GPU or CPU?
@@ -2328,9 +2338,7 @@ function App() {
                                         <option value="usingGPU">GPU</option>
                                         <option value="usingCPU">CPU</option>
                                     </select>
-                                    <label className="font-sans text-sm pl-2">
-                                        
-                                    </label>
+                                    <label className="font-sans text-sm pl-2"></label>
                                 </div>
                                 {selections.isGPUorCPU === "usingGPU" && (
                                     <div className="flex pt-2 flex-row">
@@ -2569,7 +2577,7 @@ function App() {
                             {showTable && (
                                 <>
                                     <div className="text-sm font-poppins font-bold">
-                                        Memory Requirement for:{" "}
+                                        Memory Requirement:{" "}
                                         {/* {memReqHardwareName} */}
                                     </div>
                                     <table className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
@@ -2721,7 +2729,10 @@ function App() {
                                     <div className="text-sm font-poppins font-bold">
                                         GPU Info:
                                     </div>
-                                    <table ref={gpuTableRef} className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
+                                    <table
+                                        ref={gpuTableRef}
+                                        className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins"
+                                    >
                                         <tbody>
                                             {/* Total row */}
                                             {/* Name-Value pairs */}
@@ -2765,7 +2776,10 @@ function App() {
                                     <div className="text-sm font-poppins font-bold">
                                         CPU Info:
                                     </div>
-                                    <table ref={cpuTableRef} className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
+                                    <table
+                                        ref={cpuTableRef}
+                                        className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins"
+                                    >
                                         <tbody>
                                             {/* Total row */}
                                             {/* Name-Value pairs */}
