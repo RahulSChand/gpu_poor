@@ -434,6 +434,28 @@ function getActivationMemory(
 
     return total;
 }
+//exl2 quants
+function checkCombinationTrainInferenceTok(
+    quantType,
+    setErrorMessage,
+    openModal,
+    typeOfTrn
+) {
+    // //! Can't train full with QLoRA
+    // if (typeOfTrn === "full_trn" && ggml_quants.includes(quantType)) {
+    //     setErrorMessage("Can't use GGML for training");
+    //     openModal();
+    //     return false;
+    // }
+    if (typeOfTrn === "qlora" && quantType != "no_quant") {
+        setErrorMessage(
+            "QLoRA is 4bit explicit. No need to select a quant type if you are training using QLoRA. Set it to 'None'"
+        );
+        openModal();
+        return false;
+    }
+    return true;
+}
 
 function checkCombinationTrainInference(
     quantType,
@@ -982,7 +1004,7 @@ function getGPUDataFromJSON() {}
 function App() {
     // let subtitle;
     const [modelSize, setModelSize] = useState("");
-    const [modelName, setModelName] = useState("meta-llama/Llama-2-7b-hf");
+    const [modelName, setModelName] = useState("");
     const [contextLen, setContextLen] = useState("");
 
     const [promptLen, setPromptLen] = useState("");
@@ -1037,6 +1059,10 @@ function App() {
         useState("");
     const [showTableComputeSmallInfo, setShowTableComputeSmallInfo] =
         useState(0);
+
+    const gpuTableRef = React.useRef(null);
+    const cpuTableRef = React.useRef(null);
+
 
     const [faqOpen, setFaqOpen] = useState(false);
 
@@ -1669,13 +1695,24 @@ function App() {
     function showGPUSpecs() {
         const gpuDataOnlyNum = gpuJSONData[selections.dropdownGPU];
         setGPUJSONDataForTable(enchanceGPUJSONData(gpuDataOnlyNum));
+        
         setShowTableGPU(true);
+        if (gpuTableRef.current){
+            gpuTableRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+        
     }
 
     function showCPUSpecs() {
         const cpuDataOnlyNum = cpuJSONData[selections.dropdownCPU];
         setCPUJSONDataForTable(enchanceCPUJSONData(cpuDataOnlyNum));
         setShowTableCPU(true);
+        
+        if (cpuTableRef.current){
+            cpuTableRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        
     }
 
     function sanityChecks() {
@@ -1697,7 +1734,7 @@ function App() {
         );
 
 
-        let check2 = checkCombinationTrainInference(
+        let check2 = checkCombinationTrainInferenceTok(
             selections.dropdownQuant,
             setErrorMessage,
             openModal,
@@ -2517,7 +2554,7 @@ function App() {
                                     </button>
                                 </div>
                             </div>
-                            <div className="pt-1 whitespace-normal overflow-hidden max-w-5xl font-poppins">
+                            <div className="pt-1 whitespace-normal overflow-hidden max-w-2xl font-poppins">
                                 {isVisible && <div>{displayedText}</div>}
                             </div>
                         </div>
@@ -2684,7 +2721,7 @@ function App() {
                                     <div className="text-sm font-poppins font-bold">
                                         GPU Info:
                                     </div>
-                                    <table className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
+                                    <table ref={gpuTableRef} className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
                                         <tbody>
                                             {/* Total row */}
                                             {/* Name-Value pairs */}
@@ -2728,7 +2765,7 @@ function App() {
                                     <div className="text-sm font-poppins font-bold">
                                         CPU Info:
                                     </div>
-                                    <table className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
+                                    <table ref={cpuTableRef} className="min-w-1/2 bg-white border-collapse border-2 border-black font-poppins">
                                         <tbody>
                                             {/* Total row */}
                                             {/* Name-Value pairs */}
