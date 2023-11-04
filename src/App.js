@@ -762,7 +762,8 @@ function getAllComputedData(
     selections,
     setErrorMessage,
     openModal,
-    batchSize
+    batchSize,
+    isGradCheckPoint
 ) {
     let parsedConfig = null,
         modelSizeinB = null;
@@ -950,7 +951,14 @@ function getAllComputedData(
         );
 
         // console.log("got gradOpt", gradAndOptMemory);
+        console.log(isGradCheckPoint);
+        let actFactorGradCheckPoint = 1.0
+        if (isGradCheckPoint === 'yes'){
+            actFactorGradCheckPoint = 0.15;
+        }
 
+        activationMemory = activationMemory*actFactorGradCheckPoint;
+        
         gradAndOptMemory = convertToMB(gradAndOptMemory);
         totalMemory = modelSizeinMB + gradAndOptMemory + activationMemory;
 
@@ -958,6 +966,8 @@ function getAllComputedData(
 
         totalMemory = totalMemory + overHead;
     }
+
+    
 
     return {
         Total: Math.ceil(totalMemory),
@@ -1059,6 +1069,7 @@ function App() {
         useState(0);
 
     const [showTrainLenInfo, setShowTrainLenInfo] = useState(true);
+    const [showTrainGradientCheck, setShowTrainGradientCheck] = useState(true);
 
     const gpuTableRef = React.useRef(null);
     const cpuTableRef = React.useRef(null);
@@ -1181,6 +1192,7 @@ function App() {
         dropdownCPU: "3600x",
         dropdownDDR: "ddr4",
         isGPUorCPU: "usingGPU",
+        isGradCheckPoint : "no"
     });
 
     function setDDROptions(value) {
@@ -1203,13 +1215,15 @@ function App() {
     function setTrainPromptLenInfoMessage(value){
         if (value === 'trn'){
             setShowTrainLenInfo(true);
+            // setShowTrainGradientCheck(true);
         }
         else{
             setShowTrainLenInfo(false);
+            // setShowTrainGradientCheck(false);
         }
     }
 
-    const handleChangeSelection = (e) => {
+    const handleChangeSelection  = (e) => {
         const { name, value } = e.target;
         setSelections((prevState) => ({
             ...prevState,
@@ -1222,6 +1236,7 @@ function App() {
         if (name === "dropdownTrnOrNot"){
             setTrainPromptLenInfoMessage(value);
         }
+
     };
 
     // const handleChangeInText1 = (event) => {
@@ -1525,6 +1540,11 @@ function App() {
         let timeIfFlops_in_ms =
             (totalFlopsToken * 1000) / (tera * gpu_compute * 0.85);
         let memoryOrCompute = "compute";
+        if (selections.isGradCheckPoint==='yes'){
+            //This factor should be around ~1.5x. To be safe I have kept it as 1.65x
+            //Source: https://github.com/huggingface/transformers/issues/25572#issuecomment-1687749561
+            timeIfFlops_in_ms = timeIfFlops_in_ms*1.65;
+        }
         const jsonComputeReturnData = {
             "ms per iteration(forward + backward)":
                 timeIfFlops_in_ms.toFixed(2),
@@ -1915,7 +1935,8 @@ function App() {
             selections,
             setErrorMessage,
             openModal,
-            batchSize
+            batchSize,
+            selections.isGradCheckPoint
         );
 
         if (out == null) {
@@ -2319,6 +2340,28 @@ function App() {
                                         />
                                     </div>
                                 </div>
+                                {showTrainGradientCheck && (<div className="flex pt-2">
+    <div className="flex flex-row pr-6">
+        <label className="font-poppins text-sm pr-2">
+            Gradient Checkpointing?
+        </label>
+        <select
+            className="font-poppins text-sm border border-gray-500"
+            name="isGradCheckPoint"
+            onChange={handleChangeSelection}
+        >
+            <option value="no">
+                No
+            </option>
+            <option value="yes">
+                Yes
+            </option>
+        </select>
+        <div className="font-poppins text-xs ml-3 pt-1 text-blue-700">
+            Only applicable for train
+            </div>
+    </div>
+</div>)}
                             </div>
                             <div className="flex flex-col border border-gray-400 p-2 rounded-lg mt-2 hover:border-black">
                                 <div>
