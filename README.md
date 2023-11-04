@@ -2,7 +2,9 @@
 
 ![Made with](https://img.shields.io/badge/logo-javascript-blue?logo=javascript)
 
-Calculate how much **GPU memory you need** and how much **token/s you can get** on your GPU or CPU &amp; breakdown of where it goes for training/inference of any LLM model with quantization (GGML/bitsandbytes), inference frameworks (vLLM/llama.cpp/HF) & QLoRA. 
+Calculates how much **GPU memory you need** and how much **token/s you can get** for any LLM & GPU/CPU.
+
+Also breakdown of where it goes for training/inference with quantization (GGML/bitsandbytes/QLoRA) & inference frameworks (vLLM/llama.cpp/HF) supported
 
 Link: **https://rahulschand.github.io/gpu_poor/**
 
