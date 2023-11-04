@@ -73,12 +73,12 @@ For training, output is time for each forward pass (in ms)
 
 made this to check if you can run a particular LLM on your GPU. Useful to figure out the following
 
-1. What quantization will fit on my GPU?
-2. Max context length & batch-size my GPU can handle?
-3. Which finetuning? Full? LoRA? QLoRA?
-5. What is consuming my GPU memory? What to change to fit the LLM on GPU?
-6. How much token/s can I get?
-7. How much total time to finetune? 
+1. How much token/s can I get?
+2. How much total time to finetune? 
+3. What quantization will fit on my GPU?
+4. Max context length & batch-size my GPU can handle?
+5. Which finetuning? Full? LoRA? QLoRA?
+6. What is consuming my GPU memory? What to change to fit the LLM on GPU? 
 
 ---
 
