@@ -85,6 +85,46 @@ function computeInferenceOnlyActivationMemory(contextLen, parsedConfig) {
     );
 }
 
+function getModelSuggestions(query, modelNames, maxSuggestions = 10) {
+    if (!query || query.length < 2) return [];
+    
+    query = query.toLowerCase();
+    
+    // Split query into words for more flexible matching
+    const queryWords = query.split(/[\s/-]+/).filter(word => word.length > 0);
+    
+    return modelNames
+        .filter(modelName => {
+            const modelNameLower = modelName.toLowerCase();
+            
+            // Check if all query words are present in the model name
+            return queryWords.every(word => modelNameLower.includes(word));
+        })
+        .sort((a, b) => {
+            const aLower = a.toLowerCase();
+            const bLower = b.toLowerCase();
+            
+            // Prioritize exact matches
+            const aExactMatch = aLower.startsWith(query);
+            const bExactMatch = bLower.startsWith(query);
+            
+            if (aExactMatch && !bExactMatch) return -1;
+            if (!aExactMatch && bExactMatch) return 1;
+            
+            // Then prioritize matches at word boundaries
+            const aWordMatch = aLower.includes('/' + query) || aLower.includes('-' + query);
+            const bWordMatch = bLower.includes('/' + query) || bLower.includes('-' + query);
+            
+            if (aWordMatch && !bWordMatch) return -1;
+            if (!aWordMatch && bWordMatch) return 1;
+            
+            // Finally, sort by string length (shorter names first)
+            return a.length - b.length;
+        })
+        .slice(0, maxSuggestions);
+}
+
+
 //floatBytes, quant
 function computeModelSizeGGML(parsedConfig, quant) {
     const vocab = parsedConfig["vocab"],
@@ -1998,18 +2038,31 @@ function App() {
 
     useEffect(() => {
         if (modelName && responseCacheKeys) {
-            if (modelName.length > 1) {
-                const filtered = responseCacheKeys.filter((item) =>
-                    item.startsWith(modelName)
-                );
-                setSuggestions(filtered.slice(0, 10));
+            if (modelName.length >= 2) {
+                const suggestions = getModelSuggestions(modelName, responseCacheKeys);
+                setSuggestions(suggestions);
             } else {
                 setSuggestions([]);
             }
         } else {
             setSuggestions([]);
         }
-    }, [modelName]);
+    }, [modelName, responseCacheKeys]);
+
+    // useEffect(() => {
+    //     if (modelName && responseCacheKeys) {
+    //         if (modelName.length > 1) {
+    //             const filtered = responseCacheKeys.filter((item) =>
+    //                 item.startsWith(modelName)
+    //             );
+    //             setSuggestions(filtered.slice(0, 10));
+    //         } else {
+    //             setSuggestions([]);
+    //         }
+    //     } else {
+    //         setSuggestions([]);
+    //     }
+    // }, [modelName]);
 
     // useEffect(() => {
     //     if (modelName) {
@@ -2050,7 +2103,7 @@ function App() {
                     <Modal
                         isOpen={modalIsOpen}
                         // onAfterOpen={afterOpenModal}
-                        className="m-auto mt-24 w-3/4 md:w-1/2 lg:w-1/3 bg-white p-4 rounded shadow-xl"
+                        className="m-g mt-24 w-3/4 md:w-1/2 lg:w-1/3 bg-white p-4 rounded shadow-xl"
                         overlayClassName="fixed inset-0 bg-black bg-opacity-50"
                         onRequestClose={closeModal}
                         contentLabel="Example Modal"
