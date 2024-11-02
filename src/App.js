@@ -2465,14 +2465,29 @@ function App() {
                                                 <option value="rtx-4090">
                                                     RTX 4090
                                                 </option>
-                                                <option value="P-100 (12 GB)">
-                                                    P 100
+                                                <option value="P-100">
+                                                    P 100 (12 GB)
+                                                </option>
+                                                <option value="P-40">
+                                                    P-40 (24 GB)
                                                 </option>
                                                 <option value="A-4000">
                                                     A 4000
                                                 </option>
                                                 <option value="A-6000">
                                                     A 6000
+                                                </option>
+                                                <option value="A100-40GB">
+                                                A100-40GB
+                                                </option>
+                                                <option value="A100-80GB">
+                                                A100-80GB
+                                                </option>
+                                                <option value="H100-SXM5">
+                                                H100-SXM5
+                                                </option>
+                                                <option value="H100-PCIe">
+                                                H100-PCIe
                                                 </option>
                                             </select>
                                         </div>
