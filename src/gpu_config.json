@@ -11,5 +11,7 @@
     "P-100": {"bandwidth": 1000, "compute": 19.05, "memory": 12},
     "P-40": {"bandwidth": 364, "compute": 11.76, "memory": 24},
     "A100-40GB": {"bandwidth": 1555, "compute": 19.5, "memory": 40},
-    "A100-80GB": {"bandwidth": 1935, "compute": 19.5, "memory": 80}
+    "A100-80GB": {"bandwidth": 2039, "compute": 19.5, "memory": 80},
+    "H100-SXM5": {"bandwidth": 3350, "compute": 51.7, "memory": 80},
+    "H100-PCIe": {"bandwidth": 2000, "compute": 51.7, "memory": 80}
 }
