@@ -913,7 +913,7 @@ function getAllComputedData(
                 fB = 0.5;
             }
 
-            inferenceMemory = convertToMB(
+            inferenceMemory = batchSize*convertToMB(
                 2 *
                     contextLen *
                     2 *
@@ -922,7 +922,7 @@ function getAllComputedData(
                     parsedConfig["num_layers"]
             );
 
-            activationMemory = computeInferenceOnlyActivationMemory(
+            activationMemory = batchSize*computeInferenceOnlyActivationMemory(
                 contextLen,
                 parsedConfig
             );
@@ -937,7 +937,7 @@ function getAllComputedData(
         }
         if (trnType === "inf_ggml") {
             modelSizeinMB = computeModelSizeGGML(parsedConfig, quantType);
-            inferenceMemory = convertToMB(
+            inferenceMemory = batchSize*convertToMB(
                 1 *
                     contextLen *
                     2 *
@@ -945,7 +945,7 @@ function getAllComputedData(
                     parsedConfig["hiddenDim"] *
                     parsedConfig["num_layers"]
             );
-            activationMemory = computeInferenceOnlyActivationMemory(
+            activationMemory = batchSize*computeInferenceOnlyActivationMemory(
                 contextLen,
                 parsedConfig
             );
