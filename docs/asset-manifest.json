@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/gpu_poor/static/css/main.ea4e714c.css",
+    "main.js": "/gpu_poor/static/js/main.ad865f2c.js",
+    "static/js/787.dccdf937.chunk.js": "/gpu_poor/static/js/787.dccdf937.chunk.js",
+    "index.html": "/gpu_poor/index.html",
+    "main.ea4e714c.css.map": "/gpu_poor/static/css/main.ea4e714c.css.map",
+    "main.ad865f2c.js.map": "/gpu_poor/static/js/main.ad865f2c.js.map",
+    "787.dccdf937.chunk.js.map": "/gpu_poor/static/js/787.dccdf937.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ea4e714c.css",
+    "static/js/main.ad865f2c.js"
+  ]
+}
